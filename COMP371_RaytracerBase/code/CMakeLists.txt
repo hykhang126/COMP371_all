@@ -42,7 +42,8 @@ find_package(Eigen3 REQUIRED)
 include_directories(${EIGEN3_INCLUDE_DIR})
 endif()
 # If you need too manually add the paths to your Eigen library, you can add it here
-# do not delete the other 
+# do not delete the other
+include_directories( "C:\\Program Files (x86)\\MSYS2\\mingw64\\include\\eigen3" )
 
 # These folders include some important header files including the header files for your own solution
 #do not remove
