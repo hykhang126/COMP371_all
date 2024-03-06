@@ -23,9 +23,16 @@ color ray_color(const Ray& r, const hittable& world, Scene* scene)
     return scene->outputs[0]->bkc;
 }
 
-color BlinnPhongShader(const Ray& r, Scene* scene)
+color BlinnPhongShader(const Ray& r, const hit_record rec, Scene* scene)
 {
+    // ray is passed in here
 
+    // get the view vector
+    Vector3f v = scene->outputs[0]->lookat;
+
+    // get the Normal
+    Vector3f n = rec.normal;
+    
 }
 
 /* -------------------------------------------------------- */
