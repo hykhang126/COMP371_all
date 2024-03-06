@@ -4,6 +4,7 @@
 #include "../external/simpleppm.h"
 #include "Ray.h"
 #include "SceneObjs.h"
+#include "Scene.h"
 
 #include <iostream>
 #include <string>
@@ -13,6 +14,7 @@
 using namespace std;
 using namespace nlohmann;
 using Eigen::Vector3f;
+using std::string;
 
 class RayTracer
 {

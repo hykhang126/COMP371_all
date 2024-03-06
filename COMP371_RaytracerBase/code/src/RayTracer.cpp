@@ -1,12 +1,25 @@
 #include "RayTracer.h"
 
-// void write_color(std::ostream &out, Vector3f pixel_color) 
-// {
-//     // Write the translated [0,255] value of each color component.
-//     out << static_cast<int>(255.999 * pixel_color.x()) << ' '
-//         << static_cast<int>(255.999 * pixel_color.y()) << ' '
-//         << static_cast<int>(255.999 * pixel_color.z()) << '\n';
-// }
+using color = Vector3f;
+
+bool hit_sphere(const Vector3f& center, double radius, const Ray& r) {
+    Vector3f oc = r.origin() - center;
+    auto a = r.direction().dot(r.direction());
+    auto b = 2.0 * oc.dot(r.direction());
+    auto c = oc.dot(oc) - radius*radius;
+    auto discriminant = b*b - 4*a*c;
+    return (discriminant >= 0);
+}
+
+color ray_color(const Ray& r, Scene* scene) 
+{
+    if (hit_sphere(scene->geometries[0]->centre, scene->geometries[0]->radius, r))
+    return color(1, 0, 0);
+
+    Vector3f unit_direction = r.direction().normalized();
+    auto a = 0.5*(unit_direction.y() + 1.0);
+    return (1.0-a)*color(1.0, 1.0, 1.0) + a*color(0.5, 0.7, 1.0);
+}
 
 RayTracer::RayTracer(json& j) : j(j)
 {
@@ -20,7 +33,6 @@ RayTracer::RayTracer(json& j) : j(j)
 RayTracer::~RayTracer()
 {
     j.~basic_json();
-    scene->~Scene();
     delete scene;
 }
 
@@ -30,6 +42,7 @@ void RayTracer::run()
 
     // Run save to ppm file?
     process_ppm();
+
 }
 
 void RayTracer::process_json(json &j)
@@ -56,9 +69,9 @@ bool RayTracer::parse_geometry(json &j)
         Vector3f ac(geom["ac"][0], geom["ac"][1], geom["ac"][2]);
         Vector3f dc(geom["dc"][0], geom["dc"][1], geom["dc"][2]);
         Vector3f sc(geom["sc"][0], geom["sc"][1], geom["sc"][2]);
-        Geometry g(geom["type"], centre, geom["radius"], ac, dc, sc,
+        Geometry* g = new Geometry(geom["type"], centre, geom["radius"], ac, dc, sc,
                    geom["ka"], geom["kd"], geom["ks"], geom["pc"]);
-        scene->geometries.push_back(&g);
+        scene->geometries.push_back(g);
         ++gc;
     }
 
@@ -78,8 +91,8 @@ bool RayTracer::parse_lights(json &j)
         Vector3f centre(light["centre"][0], light["centre"][1], light["centre"][2]);
         Vector3f id(light["id"][0], light["id"][1], light["id"][2]);
         Vector3f is(light["is"][0], light["is"][1], light["is"][2]);
-        Light l(light["type"], centre, id, is);
-        scene->lights.push_back(&l);
+        Light* l = new Light(light["type"], centre, id, is);
+        scene->lights.push_back(l);
         ++lc;
     }
     
@@ -145,8 +158,8 @@ bool RayTracer::parse_output(json &j)
         Vector3f up((*itr)["up"][0], (*itr)["up"][1], (*itr)["up"][2]);
         Vector3f ai((*itr)["ai"][0], (*itr)["ai"][1], (*itr)["ai"][2]);
         Vector3f bkc((*itr)["bkc"][0], (*itr)["bkc"][1], (*itr)["bkc"][2]);
-        Output o(filename, size[0], size[1], lookat, up, fov, centre, ai, bkc);
-        scene->outputs.push_back(&o);
+        Output* o = new Output(filename, size[0], size[1], lookat, up, fov, centre, ai, bkc);
+        scene->outputs.push_back(o);
         
         ++lc;
     }
@@ -157,11 +170,48 @@ bool RayTracer::parse_output(json &j)
 
 void RayTracer::process_ppm()
 {
-    Output* out = *scene->outputs.begin();
-    int dimx = out->image_width;
-    int dimy = out->image_height;
+    Output out = *scene->outputs[0];
+    int dimx = out.image_width;
+    int dimy = out.image_height;
 
-    std::vector<double> buffer(3*dimx*dimy);      
-             
-    save_ppm("test.ppm", buffer, dimx, dimy);
+    // Camera
+
+    auto focal_length = 1.0;
+    auto viewport_height = 2.0;
+    auto viewport_width = viewport_height * (static_cast<double>(dimx)/dimy);
+    auto camera_center = Vector3f(0, 0, 0);
+
+    // Calculate the vectors across the horizontal and down the vertical viewport edges.
+    auto viewport_u = Vector3f(viewport_width, 0, 0);
+    auto viewport_v = Vector3f(0, -viewport_height, 0);
+
+    // Calculate the horizontal and vertical delta vectors from pixel to pixel.
+    auto pixel_delta_u = viewport_u / dimx;
+    auto pixel_delta_v = viewport_v / dimy;
+
+    // Calculate the location of the upper left pixel.
+    auto viewport_upper_left = camera_center
+                             - Vector3f(0, 0, focal_length) - viewport_u/2 - viewport_v/2;
+    auto pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+
+    // Buffer to send to ppm file
+    std::vector<double> * buffer = new std::vector<double>(3*(dimx*dimy));
+
+    for (int j = 0; j < dimy; ++j) {
+        for (int i = 0; i < dimx; ++i) {
+            auto pixel_center = pixel00_loc + (i * pixel_delta_u) + (j * pixel_delta_v);
+            auto ray_direction = pixel_center - camera_center;
+            Ray r(camera_center, ray_direction);
+
+            color pixel_color = ray_color(r, scene);
+            buffer->at(3*j*dimx+3*i+0)= pixel_color[0];
+            buffer->at(3*j*dimx+3*i+1)= pixel_color[1];
+            buffer->at(3*j*dimx+3*i+2)= pixel_color[2];
+        }
+    }
+
+    save_ppm(out.filename, *buffer, dimx, dimy);
+    cout << out.filename << " save succesfully in Raytracer.cpp" <<endl;
+
+    delete buffer;
 }
