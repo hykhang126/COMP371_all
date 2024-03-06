@@ -8,6 +8,7 @@
 #include "Geometry.h"
 #include "Light.h"
 #include "Output.h"
+#include "Hittable.h"
 
 using namespace std;
 using namespace nlohmann;

@@ -16,7 +16,26 @@ public:
     vector<Light*> lights;
     vector<Output*> outputs;
 
-    ~Scene() = default;
+    ~Scene() 
+    {
+        for (auto var : geometries)
+        {
+            delete var;
+        }
+        geometries.clear();
+
+        for (auto var : lights)
+        {
+            delete var;
+        }
+        lights.clear();
+
+        for (auto var : outputs)
+        {
+            delete var;
+        }
+        outputs.clear();
+    };
     Scene()
     {
         geometries = vector<Geometry*>();

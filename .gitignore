@@ -6,3 +6,6 @@
 
 *.txt
 
+*.make
+*.cmake
+

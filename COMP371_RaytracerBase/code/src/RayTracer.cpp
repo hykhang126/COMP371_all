@@ -2,22 +2,33 @@
 
 using color = Vector3f;
 
-bool hit_sphere(const Vector3f& center, double radius, const Ray& r) {
-    Vector3f oc = r.origin() - center;
-    auto a = r.direction().dot(r.direction());
-    auto b = 2.0 * oc.dot(r.direction());
-    auto c = oc.dot(oc) - radius*radius;
-    auto discriminant = b*b - 4*a*c;
-    return (discriminant >= 0);
+// Constants
+
+const double infinity = std::numeric_limits<double>::infinity();
+const double pi = 3.1415926535897932385;
+
+// Utility Functions
+
+inline double degrees_to_radians(double degrees) {
+    return degrees * pi / 180.0;
 }
 
-color ray_color(const Ray& r, Scene* scene) 
+color ray_color(const Ray& r, const hittable& world, Scene* scene) 
 {
-    if (hit_sphere(scene->geometries[0]->centre, scene->geometries[0]->radius, r))
-    return scene->geometries[0]->ac;
+    hit_record rec;
+    if (world.hit(r, 0, infinity, rec)) {
+        return color(1,0,0);
+    }
 
     return scene->outputs[0]->bkc;
 }
+
+color BlinnPhongShader(const Ray& r, Scene* scene)
+{
+
+}
+
+/* -------------------------------------------------------- */
 
 RayTracer::RayTracer(json& j) : j(j)
 {
@@ -172,6 +183,12 @@ void RayTracer::process_ppm()
     int dimx = out.image_width;
     int dimy = out.image_height;
 
+    // World
+
+    hittable_list world;
+
+    world.add(make_shared<Sphere>(scene->geometries[0]->centre, scene->geometries[0]->radius));
+
     // Camera
 
     auto focal_length = 1.0;
@@ -201,7 +218,7 @@ void RayTracer::process_ppm()
             auto ray_direction = pixel_center - camera_center;
             Ray r(camera_center, ray_direction);
 
-            color pixel_color = ray_color(r, scene);
+            color pixel_color = ray_color(r, world, scene);
             buffer->at(3*j*dimx+3*i+0)= pixel_color[0];
             buffer->at(3*j*dimx+3*i+1)= pixel_color[1];
             buffer->at(3*j*dimx+3*i+2)= pixel_color[2];
