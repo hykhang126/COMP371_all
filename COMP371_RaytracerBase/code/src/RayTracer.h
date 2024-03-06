@@ -2,19 +2,15 @@
 
 #include "../external/json.hpp"
 #include "../external/simpleppm.h"
-#include "Ray.h"
 #include "SceneObjs.h"
+#include "Ray.h"
 #include "Scene.h"
-
-#include <iostream>
-#include <string>
-#include <Eigen/Core>
-#include <Eigen/Dense>
+#include "Geometry.h"
+#include "Light.h"
+#include "Output.h"
 
 using namespace std;
 using namespace nlohmann;
-using Eigen::Vector3f;
-using std::string;
 
 class RayTracer
 {

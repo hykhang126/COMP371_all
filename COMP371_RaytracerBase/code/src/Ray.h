@@ -1,5 +1,4 @@
-#ifndef RAY_H
-#define RAY_H
+#pragma once
 //==============================================================================================
 // Originally written in 2016 by Peter Shirley <ptrshrl@gmail.com>
 //
@@ -11,9 +10,7 @@
 // along with this software. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 //==============================================================================================
 
-#include <Eigen/Core>
-
-using Eigen::Vector3f;
+#include "SceneObjs.h"
 
 class Ray 
 {
@@ -33,5 +30,3 @@ class Ray
     Vector3f orig;
     Vector3f dir;
 };
-
-#endif

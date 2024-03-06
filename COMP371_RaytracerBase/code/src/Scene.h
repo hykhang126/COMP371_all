@@ -1,6 +1,9 @@
 #pragma once
 
 #include "SceneObjs.h"
+#include "Geometry.h"
+#include "Light.h"
+#include "Output.h"
 
 class Scene 
 {

@@ -14,11 +14,9 @@ bool hit_sphere(const Vector3f& center, double radius, const Ray& r) {
 color ray_color(const Ray& r, Scene* scene) 
 {
     if (hit_sphere(scene->geometries[0]->centre, scene->geometries[0]->radius, r))
-    return color(1, 0, 0);
+    return scene->geometries[0]->ac;
 
-    Vector3f unit_direction = r.direction().normalized();
-    auto a = 0.5*(unit_direction.y() + 1.0);
-    return (1.0-a)*color(1.0, 1.0, 1.0) + a*color(0.5, 0.7, 1.0);
+    return scene->outputs[0]->bkc;
 }
 
 RayTracer::RayTracer(json& j) : j(j)
