@@ -13,26 +13,70 @@ inline double degrees_to_radians(double degrees) {
     return degrees * pi / 180.0;
 }
 
-color ray_color(const Ray& r, const hittable& world, Scene* scene) 
+color BlinnPhongShader(const Ray& r, const hit_record& rec, Scene* scene)
 {
-    hit_record rec;
-    if (world.hit(r, 0, infinity, rec)) {
-        return color(1,0,0);
-    }
+    Vector3f color;
 
-    return scene->outputs[0]->bkc;
-}
+    // Scene reflection components
+    Vector3f ai = scene->outputs[0]->ai;
 
-color BlinnPhongShader(const Ray& r, const hit_record rec, Scene* scene)
-{
-    // ray is passed in here
+    // Light reflection components
+    Vector3f id = scene->lights[0]->id;
+    Vector3f is = scene->lights[0]->is;
+
+    // Geometric reflection components
+    Vector3f ac = scene->geometries[0]->ac;
+    Vector3f dc = scene->geometries[0]->dc;
+    Vector3f sc = scene->geometries[0]->sc;
+    float ka = scene->geometries[0]->ka;
+    float kd = scene->geometries[0]->kd;
+    float ks = scene->geometries[0]->ks;
+    float pc = scene->geometries[0]->pc;
+
+    // get the light direction
+    Vector3f l = scene->lights[0]->centre - rec.p;
 
     // get the view vector
     Vector3f v = scene->outputs[0]->lookat;
 
     // get the Normal
-    Vector3f n = rec.normal;
+    Vector3f n = scene->geometries[0]->centre - rec.p;
+
+    // get reflection direction
+    Vector3f reflection = rec.p - 2*rec.normal.cross(n);
+
+    // Normalization
+    l = l.normalized();
+    v = v.normalized();
+    n = n.normalized();
+    reflection = reflection.normalized();
+
+    // Ambient
+    Vector3f ambient = ai.cwiseProduct(ac) * ka;
+
+    // Diffuse 
+    Vector3f diffuse = id.cwiseProduct(dc) * kd * max(n.dot(l), 0.0f);
+
+    // Specular
+    Vector3f specular = is.cwiseProduct(sc) * ks * pow(max(reflection.dot(v), 0.0f), pc);
+
+    color = ambient + diffuse + specular;
+
+    // std::clamp(color[0], 0.0f, 1.0f);
+    // std::clamp(color[1], 0.0f, 1.0f);
+    // std::clamp(color[2], 0.0f, 1.0f);
     
+    return color;
+}
+
+color ray_color(const Ray& r, const hittable& world, Scene* scene) 
+{
+    hit_record rec;
+    if (world.hit(r, 0, infinity, rec)) {
+        return BlinnPhongShader(r, rec, scene);
+    }
+
+    return scene->outputs[0]->bkc;
 }
 
 /* -------------------------------------------------------- */
@@ -217,7 +261,7 @@ void RayTracer::process_ppm()
     auto pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
 
     // Buffer to send to ppm file
-    std::vector<double> * buffer = new std::vector<double>(3*(dimx*dimy));
+    std::vector<double> * buffer = new std::vector<double>(3*(dimx*dimy + dimx));
 
     for (int j = 0; j < dimy; ++j) {
         for (int i = 0; i < dimx; ++i) {
