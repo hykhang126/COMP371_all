@@ -12,6 +12,8 @@ class camera {
     Vector3f pixel00_loc;    // Location of pixel 0, 0
     Vector3f pixel_delta_u;  // Offset to pixel to the right
     Vector3f pixel_delta_v;  // Offset to pixel below
+    int    samples_per_pixel = 10;   // Count of random samples for each pixel
+
 
     // Default render function
     void render(const hittable& world) {
@@ -22,12 +24,11 @@ class camera {
         for (int j = 0; j < image_height; ++j) {
             std::clog << "\rScanlines remaining: " << (image_height - j) << ' ' << std::flush;
             for (int i = 0; i < image_width; ++i) {
-                auto pixel_center = pixel00_loc + (i * pixel_delta_u) + (j * pixel_delta_v);
-                auto ray_direction = pixel_center - center;
-                Ray r(center, ray_direction);
-
-                color pixel_color = ray_color(r, world);
-                // write_color(std::cout, pixel_color);
+                color pixel_color(0, 0, 0);
+                for (int sample = 0; sample < samples_per_pixel; ++sample) {
+                    Ray r = get_ray(i, j);
+                    pixel_color += ray_color(r, world);
+                }
             }
         }
 
@@ -75,6 +76,25 @@ class camera {
         return (1.0-a)*color(1.0, 1.0, 1.0) + a*color(0.5, 0.7, 1.0);
     }
 
+    Ray get_ray(int i, int j) const {
+        // Get a randomly sampled camera ray for the pixel at location i,j.
+
+        auto pixel_center = pixel00_loc + (i * pixel_delta_u) + (j * pixel_delta_v);
+        auto pixel_sample = pixel_center + pixel_sample_square();
+
+        auto ray_origin = center;
+        auto ray_direction = pixel_sample - ray_origin;
+
+        return Ray(ray_origin, ray_direction);
+    }
+
+    Vector3f pixel_sample_square() const {
+        // Returns a random point in the square surrounding a pixel at the origin.
+        auto px = -0.5 + random_double();
+        auto py = -0.5 + random_double();
+        return (px * pixel_delta_u) + (py * pixel_delta_v);
+    }
+
     // My version of Initialzation
     void initialize(Vector3f centre, double dimx, double dimy)
     {
@@ -82,6 +102,7 @@ class camera {
         image_width = dimx;
         image_height = dimy;
         aspect_ratio = dimx / dimy;
+        samples_per_pixel = 10;
 
         auto focal_length = 1.0;
         auto viewport_height = 2.0;

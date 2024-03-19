@@ -1,80 +1,5 @@
 #include "RayTracer.h"
 
-template <typename T>
-T clip(const T& n, const T& lower, const T& upper) {
-  return std::max(lower, std::min(n, upper));
-}
-
-color BlinnPhongShader(const Ray& r, const hit_record& rec, Scene* scene, 
-    Output& out, Geometry& geometry)
-{
-    Vector3f color;
-
-    // Scene reflection components
-    Vector3f ai = out.ai;
-
-    // Light reflection components
-    Vector3f id = scene->lights[0]->id;
-    Vector3f is = scene->lights[0]->is;
-
-    // Geometric reflection components
-    Vector3f ac = geometry.ac;
-    Vector3f dc = geometry.dc;
-    Vector3f sc = geometry.sc;
-    float ka = geometry.ka;
-    float kd = geometry.kd;
-    float ks = geometry.ks;
-    float pc = geometry.pc;
-
-    // get the light direction
-    Vector3f l = scene->lights[0]->centre - rec.p;
-
-    // get the view vector
-    Vector3f v = out.lookat;
-
-    // get the Normal
-    Vector3f n = geometry.centre - rec.p;
-
-    // get reflection direction
-    Vector3f reflection = rec.p - 2*rec.normal.cross(n);
-
-    // Normalization
-    l = l.normalized();
-    v = v.normalized();
-    n = n.normalized();
-    reflection = reflection.normalized();
-
-    // Ambient
-    Vector3f ambient = ai.cwiseProduct(ac) * ka;
-
-    // Diffuse 
-    Vector3f diffuse = id.cwiseProduct(dc) * kd * max(n.dot(l), 0.0f);
-
-    // Specular
-    Vector3f specular = is.cwiseProduct(sc) * ks * pow(max(reflection.dot(v), 0.0f), pc);
-
-    color = ambient + diffuse + specular;
-
-    clip(color[0], 0.0f, 1.0f);
-    clip(color[1], 0.0f, 1.0f);
-    clip(color[2], 0.0f, 1.0f);
-    
-    return color;
-}
-
-color ray_color(const Ray& r, const hittable& world, Scene* scene, Output& out) 
-{
-    hit_record rec;
-    if (world.hit(r, interval(0, infinity), rec, 0)) {
-
-        return BlinnPhongShader(r, rec, scene, out, *scene->geometries.at(rec.index));
-    }
-
-    return scene->outputs[0]->bkc;
-}
-
-/* -------------------------------------------------------- */
-
 RayTracer::RayTracer(json& j) : j(j)
 {
     // Extract info
@@ -226,6 +151,109 @@ bool RayTracer::parse_output(json &j)
     return true;
 }
 
+
+
+/* -------------------------------------------------------- */
+
+
+
+template <typename T>
+T clip(const T& n, const T& lower, const T& upper) {
+    return std::max(lower, std::min(n, upper));
+}
+
+color BlinnPhongShader(const Ray& r, const hit_record& rec, Scene* scene,
+    Output& out, Geometry& geometry)
+{
+    Vector3f color;
+
+    // Scene reflection components
+    Vector3f ai = out.ai;
+
+    // Light reflection components
+    Vector3f id = scene->lights[0]->id;
+    Vector3f is = scene->lights[0]->is;
+
+    // Geometric reflection components
+    Vector3f ac = geometry.ac;
+    Vector3f dc = geometry.dc;
+    Vector3f sc = geometry.sc;
+    float ka = geometry.ka;
+    float kd = geometry.kd;
+    float ks = geometry.ks;
+    float pc = geometry.pc;
+
+    // get the light direction
+    Vector3f l = scene->lights[0]->centre - rec.p;
+
+    // get the view vector
+    Vector3f v = out.lookat;
+
+    // get the Normal
+    Vector3f n = geometry.centre - rec.p;
+
+    // get reflection direction
+    Vector3f reflection = rec.p - 2 * rec.normal.cross(n);
+
+    // Normalization
+    l = l.normalized();
+    v = v.normalized();
+    n = n.normalized();
+    reflection = reflection.normalized();
+
+    // Ambient
+    Vector3f ambient = ai.cwiseProduct(ac) * ka;
+
+    // Diffuse 
+    Vector3f diffuse = id.cwiseProduct(dc) * kd * max(n.dot(l), 0.0f);
+
+    // Specular
+    Vector3f specular = is.cwiseProduct(sc) * ks * pow(max(reflection.dot(v), 0.0f), pc);
+
+    color = ambient + diffuse + specular;
+
+    color[0] = clip(color.x(), 0.0f, 1.0f);
+    color[1] = clip(color.y(), 0.0f, 1.0f);
+    color[2] = clip(color.z(), 0.0f, 1.0f);
+
+    return color;
+}
+
+color ray_color(const Ray& r, const hittable& world, Scene* scene, Output& out)
+{
+    hit_record rec;
+    if (world.hit(r, interval(0, infinity), rec, 0)) {
+
+        return BlinnPhongShader(r, rec, scene, out, *scene->geometries.at(rec.index));
+    }
+
+    return scene->outputs[0]->bkc;
+}
+
+
+
+/* -------------------------------------------------------- */
+
+
+
+void write_color(color& out, color pixel_color, int samples_per_pixel) {
+    auto r = pixel_color.x();
+    auto g = pixel_color.y();
+    auto b = pixel_color.z();
+
+    // Divide the color by the number of samples.
+    auto scale = 1.0 / samples_per_pixel;
+    r *= scale;
+    g *= scale;
+    b *= scale;
+
+    // Write the translated [0,255] value of each color component.
+    static const interval intensity(0.000, 0.999);
+    out[0] = intensity.clamp(r);
+    out[1] = intensity.clamp(g);
+    out[2] = intensity.clamp(b);
+}
+
 void RayTracer::process_ppm(Output& out)
 {
     int dimx = out.image_width;
@@ -248,18 +276,21 @@ void RayTracer::process_ppm(Output& out)
     cam.initialize(out.centre, dimx, dimy);
 
     // Buffer to send to ppm file
-    std::vector<double> buffer(3*(dimx*dimy + dimx));
+    std::vector<double> buffer(3*(dimx*dimy));
 
     for (int j = 0; j < dimy; ++j) {
         for (int i = 0; i < dimx; ++i) {
-            auto pixel_center = cam.pixel00_loc + (i * cam.pixel_delta_u) + (j * cam.pixel_delta_v);
-            auto ray_direction = pixel_center - cam.center;
-            Ray r(cam.center, ray_direction);
-
-            color pixel_color = ray_color(r, world, scene, out);
-            buffer.at(3*j*dimx+3*i+0)= pixel_color[0];
-            buffer.at(3*j*dimx+3*i+1)= pixel_color[1];
-            buffer.at(3*j*dimx+3*i+2)= pixel_color[2];
+            color pixel_color(0, 0, 0);
+            for (int sample = 0; sample < cam.samples_per_pixel; ++sample) {
+                Ray r = cam.get_ray(i, j);
+                pixel_color += ray_color(r, world, scene, out);
+            }
+            
+            color out;
+            write_color(out, pixel_color, cam.samples_per_pixel);
+            buffer.at(3*j*dimx+3*i+0)= out.x();
+            buffer.at(3*j*dimx+3*i+1)= out.y();
+            buffer.at(3*j*dimx+3*i+2)= out.z();
         }
     }
 

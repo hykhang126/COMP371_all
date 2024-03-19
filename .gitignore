@@ -9,3 +9,6 @@
 *.make
 *.cmake
 
+.vs
+
+vcpkg**
