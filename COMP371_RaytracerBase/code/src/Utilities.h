@@ -1,5 +1,7 @@
 #pragma once
 
+#include "SceneObjs.h"
+
 class interval {
   public:
     double min, max;

@@ -2,18 +2,17 @@
 
 #include <iostream>
 #include <string>
-#include <Eigen/Core>
-#include <Eigen/Dense>
-
 #include <cmath>
 #include <limits>
 #include <memory>
+#include <Eigen/Core>
+#include <Eigen/Dense>
 
 // Usings
+
 using Eigen::Vector3f;
 using std::string;
 using std::vector;
-
 using color = Vector3f;
 
 using std::shared_ptr;
@@ -33,5 +32,5 @@ inline double degrees_to_radians(double degrees) {
 
 // Common Headers
 
-#include "Utilities.h"
 #include "Ray.h"
+#include "Utilities.h"
