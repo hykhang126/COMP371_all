@@ -1,6 +1,7 @@
 #pragma once
 
 #include "SceneObjs.h"
+#include "Hittable.h"
 
 class Geometry 
 {
@@ -26,8 +27,6 @@ public:
         pc(_pc) {}
 };
 
-#include "Hittable.h"
-
 class Sphere : public hittable {
   public:
         // Sphere(string _type, Vector3f _centre, float _radius,
@@ -38,8 +37,7 @@ class Sphere : public hittable {
 
         Sphere(Vector3f _center, double _radius) : center(_center), radius(_radius) {}
 
-    bool hit(const Ray& r, double ray_tmin, double ray_tmax, hit_record& rec) const override 
-    {
+    bool hit(const Ray& r, interval ray_t, hit_record& rec, int index) const override {
         Vector3f oc = r.origin() - center;
         auto a = r.direction().dot(r.direction());
         auto half_b = oc.dot(r.direction());
@@ -51,9 +49,9 @@ class Sphere : public hittable {
 
         // Find the nearest root that lies in the acceptable range.
         auto root = (-half_b - sqrtd) / a;
-        if (root <= ray_tmin || ray_tmax <= root) {
+        if (!ray_t.surrounds(root)) {
             root = (-half_b + sqrtd) / a;
-            if (root <= ray_tmin || ray_tmax <= root)
+            if (!ray_t.surrounds(root))
                 return false;
         }
 
@@ -61,6 +59,8 @@ class Sphere : public hittable {
         rec.p = r.at(rec.t);
         Vector3f outward_normal = (rec.p - center) / radius;
         rec.set_face_normal(r, outward_normal);
+
+        rec.index = 0;
 
         return true;
     }
