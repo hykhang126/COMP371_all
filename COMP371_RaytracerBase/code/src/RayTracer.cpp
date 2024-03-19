@@ -1,18 +1,13 @@
 #include "RayTracer.h"
 
-using color = Vector3f;
-
-// Constants
-
-const double infinity = std::numeric_limits<double>::infinity();
-const double pi = 3.1415926535897932385;
-
-// Utility Functions
-
-inline double degrees_to_radians(double degrees) {
-    return degrees * pi / 180.0;
+template <typename T>
+constexpr const T& myClamp(const T& value, const T& low, const T& high) {
+    return (value < low) ? low : ((high < value) ? high : value);
 }
 
+int hitCount = 0;
+
+// The Blinn Phong shader
 color BlinnPhongShader(const Ray& r, const hit_record& rec, Scene* scene)
 {
     Vector3f color;
@@ -62,21 +57,34 @@ color BlinnPhongShader(const Ray& r, const hit_record& rec, Scene* scene)
 
     color = ambient + diffuse + specular;
 
-    // std::clamp(color[0], 0.0f, 1.0f);
-    // std::clamp(color[1], 0.0f, 1.0f);
-    // std::clamp(color[2], 0.0f, 1.0f);
+    // myClamp(color[0], 0.0f, 1.0f);
+    // myClamp(color[1], 0.0f, 1.0f);
+    // myClamp(color[2], 0.0f, 1.0f);
     
     return color;
 }
 
-color ray_color(const Ray& r, const hittable& world, Scene* scene) 
-{
+// color ray_color(const Ray& r, const hittable& world, Scene* scene) 
+// {
+//     hit_record rec;
+//     if (world.hit(r, interval(0, infinity), rec)) {
+//         return BlinnPhongShader(r, rec, scene);
+//     }
+
+//     return scene->outputs[0]->bkc;
+// }
+
+color ray_color(const Ray& r, const hittable& world) {
     hit_record rec;
-    if (world.hit(r, 0, infinity, rec)) {
-        return BlinnPhongShader(r, rec, scene);
+
+    if (world.hit(r, interval(0, infinity), rec)) {
+        hitCount++;
+        return 0.5 * (rec.normal + color(1,1,1));
     }
 
-    return scene->outputs[0]->bkc;
+    Vector3f unit_direction = r.direction().normalized();
+    auto a = 0.5*(unit_direction.y() + 1.0);
+    return (1.0-a)*color(1.0, 1.0, 1.0) + a*color(0.5, 0.7, 1.0);
 }
 
 /* -------------------------------------------------------- */
@@ -101,7 +109,7 @@ void RayTracer::run()
     process_json(j);
 
     // Run save to ppm file?
-    process_ppm();
+    process_ppm(*scene->outputs[0]);
 
 }
 
@@ -228,56 +236,41 @@ bool RayTracer::parse_output(json &j)
     return true;
 }
 
-void RayTracer::process_ppm()
+void RayTracer::process_ppm(Output& out)
 {
-    Output out = *scene->outputs[0];
     int dimx = out.image_width;
     int dimy = out.image_height;
 
     // World
 
     hittable_list world;
-
     world.add(make_shared<Sphere>(scene->geometries[0]->centre, scene->geometries[0]->radius));
 
     // Camera
-
-    auto focal_length = 1.0;
-    auto viewport_height = 2.0;
-    auto viewport_width = viewport_height * (static_cast<double>(dimx)/dimy);
-    auto camera_center = Vector3f(0, 0, 0);
-
-    // Calculate the vectors across the horizontal and down the vertical viewport edges.
-    auto viewport_u = Vector3f(viewport_width, 0, 0);
-    auto viewport_v = Vector3f(0, -viewport_height, 0);
-
-    // Calculate the horizontal and vertical delta vectors from pixel to pixel.
-    auto pixel_delta_u = viewport_u / dimx;
-    auto pixel_delta_v = viewport_v / dimy;
-
-    // Calculate the location of the upper left pixel.
-    auto viewport_upper_left = camera_center
-                             - Vector3f(0, 0, focal_length) - viewport_u/2 - viewport_v/2;
-    auto pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+    camera cam;
+    cam.initialize(out.centre, dimx, dimy);
 
     // Buffer to send to ppm file
-    std::vector<double> * buffer = new std::vector<double>(3*(dimx*dimy + dimx));
+    std::vector<double> buffer(3*(dimx*dimy));
 
-    for (int j = 0; j < dimy; ++j) {
-        for (int i = 0; i < dimx; ++i) {
-            auto pixel_center = pixel00_loc + (i * pixel_delta_u) + (j * pixel_delta_v);
-            auto ray_direction = pixel_center - camera_center;
-            Ray r(camera_center, ray_direction);
+    // Render is still in RayTracer.cpp
+    for (int j = 0; j < cam.image_height; ++j) {
+        for (int i = 0; i < cam.image_width; ++i) {
+            auto pixel_center = cam.pixel00_loc + (i * cam.pixel_delta_u) + (j * cam.pixel_delta_v);
+            auto ray_direction = pixel_center - cam.center;
+            Ray r(cam.center, ray_direction);
 
-            color pixel_color = ray_color(r, world, scene);
-            buffer->at(3*j*dimx+3*i+0)= pixel_color[0];
-            buffer->at(3*j*dimx+3*i+1)= pixel_color[1];
-            buffer->at(3*j*dimx+3*i+2)= pixel_color[2];
+            // color pixel_color = ray_color(r, world, scene);
+            color pixel_color = ray_color(r, world);
+            // cout << pixel_color << endl;
+            buffer.at(3*j*cam.image_height+3*i+0)= pixel_color[0];
+            buffer.at(3*j*cam.image_height+3*i+1)= pixel_color[1];
+            buffer.at(3*j*cam.image_height+3*i+2)= pixel_color[2];
         }
     }
 
-    save_ppm(out.filename, *buffer, dimx, dimy);
+    save_ppm(out.filename, buffer, dimx, dimy);
     cout << out.filename << " save succesfully in Raytracer.cpp" <<endl;
 
-    delete buffer;
+    // delete buffer;
 }

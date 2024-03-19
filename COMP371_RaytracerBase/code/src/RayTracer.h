@@ -3,12 +3,12 @@
 #include "../external/json.hpp"
 #include "../external/simpleppm.h"
 #include "SceneObjs.h"
-#include "Ray.h"
 #include "Scene.h"
 #include "Geometry.h"
 #include "Light.h"
 #include "Output.h"
 #include "Hittable.h"
+#include "Camera.h"
 
 using namespace std;
 using namespace nlohmann;
@@ -29,5 +29,5 @@ public:
     bool parse_lights(json& j);
     bool parse_output(json& j);
 
-    void process_ppm();
+    void process_ppm(Output& out);
 };
