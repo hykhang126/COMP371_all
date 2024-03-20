@@ -46,6 +46,11 @@ inline int random_int(int min, int max) {
     return static_cast<int>(random_double(min, max+1));
 }
 
+template <typename T>
+T clip(const T& n, const T& lower, const T& upper) {
+    return std::max(lower, std::min(n, upper));
+}
+
 // Common Headers
 
 #include "Ray.h"

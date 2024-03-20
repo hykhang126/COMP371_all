@@ -12,7 +12,9 @@ class camera {
     Vector3f pixel00_loc;    // Location of pixel 0, 0
     Vector3f pixel_delta_u;  // Offset to pixel to the right
     Vector3f pixel_delta_v;  // Offset to pixel below
-    int    samples_per_pixel = 10;   // Count of random samples for each pixel
+    int    samples_per_pixel = 1;   // Count of random samples for each pixel
+    float vfov = 90;  // Vertical view angle (field of view)
+    bool isAAon = false;
 
 
     // Default render function
@@ -80,7 +82,8 @@ class camera {
         // Get a randomly sampled camera ray for the pixel at location i,j.
 
         auto pixel_center = pixel00_loc + (i * pixel_delta_u) + (j * pixel_delta_v);
-        auto pixel_sample = pixel_center + pixel_sample_square();
+        Vector3f pixel_sample = pixel_center;
+        if (isAAon) pixel_sample = pixel_sample + pixel_sample_square();
 
         auto ray_origin = center;
         auto ray_direction = pixel_sample - ray_origin;
@@ -96,16 +99,19 @@ class camera {
     }
 
     // My version of Initialzation
-    void initialize(Vector3f centre, double dimx, double dimy)
+    void initialize(Vector3f centre, double dimx, double dimy, float fov)
     {
         // Camera
         image_width = dimx;
         image_height = dimy;
         aspect_ratio = dimx / dimy;
         samples_per_pixel = 1;
+        vfov = fov;
 
         auto focal_length = 1.0;
-        auto viewport_height = 2.0;
+        auto theta = degrees_to_radians(vfov);
+        auto h = tan(theta/2);
+        auto viewport_height = 2 * h * focal_length;
         auto viewport_width = viewport_height * (static_cast<double>(dimx)/dimy);
         this->center = centre;
 

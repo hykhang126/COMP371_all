@@ -157,7 +157,6 @@ bool RayTracer::parse_output(json &j)
         float fov = (*itr)["fov"].get<float>();
         
         cout<<"Filename: "<<filename<<endl;
-        cout<<"Camera centre: "<<centre<<endl;
         cout<<"FOV: "<<fov<<endl;
 
         Vector3f lookat((*itr)["lookat"][0], (*itr)["lookat"][1], (*itr)["lookat"][2]);
@@ -180,13 +179,8 @@ bool RayTracer::parse_output(json &j)
 
 
 
-template <typename T>
-T clip(const T& n, const T& lower, const T& upper) {
-    return std::max(lower, std::min(n, upper));
-}
-
-color BlinnPhongShaderSphere(const Ray& r, const hit_record& rec, Scene* scene,
-    Output& out, sphere& geometry)
+color BlinnPhongShader(const Ray& r, const hit_record& rec, Light& light,
+    Output& out, Geometry& geometry)
 {
     Vector3f color;
 
@@ -194,8 +188,8 @@ color BlinnPhongShaderSphere(const Ray& r, const hit_record& rec, Scene* scene,
     Vector3f ai = out.ai;
 
     // Light reflection components
-    Vector3f id = scene->lights[0]->id;
-    Vector3f is = scene->lights[0]->is;
+    Vector3f id = light.id;
+    Vector3f is = light.is;
 
     // Geometric reflection components
     Vector3f ac = geometry.ac;
@@ -207,16 +201,16 @@ color BlinnPhongShaderSphere(const Ray& r, const hit_record& rec, Scene* scene,
     float pc = geometry.pc;
 
     // get the light direction
-    Vector3f l = scene->lights[0]->centre - rec.p;
+    Vector3f l = light.centre - rec.p;
 
     // get the view vector
-    Vector3f v = out.lookat;
+    Vector3f v = -1 * r.direction();
 
     // get the Normal
-    Vector3f n = geometry.centre - rec.p;
+    Vector3f n = rec.normal;
 
     // get reflection direction
-    Vector3f reflection = rec.p - 2 * rec.normal.cross(n);
+    Vector3f reflection = 2 * l.dot(n) * n - l;
 
     // Normalization
     l = l.normalized();
@@ -235,36 +229,37 @@ color BlinnPhongShaderSphere(const Ray& r, const hit_record& rec, Scene* scene,
 
     color = ambient + diffuse + specular;
 
-    color[0] = clip(color.x(), 0.0f, 1.0f);
-    color[1] = clip(color.y(), 0.0f, 1.0f);
-    color[2] = clip(color.z(), 0.0f, 1.0f);
-
     return color;
 }
 
 color ray_color(const Ray& r, const hittable& world, Scene* scene, Output& out)
 {
     hit_record rec;
+    color color;
+
     if (world.hit(r, interval(0, infinity), rec)) {
         // return the obj at rec.hit_index
-        auto id = scene->geometries.at(rec.hit_index)->id;
-        auto type = scene->geometries.at(rec.hit_index)->type;
+        Geometry* g = scene->geometries.at(rec.hit_index);
 
-        if (type == "sphere")
+        for (auto light : scene->lights)
         {
-            for (auto i : scene->spheres)
-            {
-                if (i->id == id) return BlinnPhongShaderSphere(r, rec, scene, out, *i);
-            }
+            hit_record light_rec;
+            Vector3f ray_org = rec.p;
+            Vector3f ray_dir = light->centre - ray_org;
+            Ray ray = Ray(ray_org, ray_dir);
+
+            color = color + BlinnPhongShader(r, rec, *light, out, *g);
+
+            // if (!world.hit(ray, interval(rec.t, infinity), light_rec)) 
+            //     color = color + BlinnPhongShader(r, rec, *light, out, *g);
+            // else
+            //     return Vector3f(0.0f, 0.0f, 0.0f);
         }
-        else if (type == "rectangle")
-        {
-            for (auto i : scene->rectangles)
-            {
-                // TODO: implement blinn phong for rectangle
-                if (i->id == id) return Vector3f(1,0,0);
-            }
-        }
+        
+        color[0] = clip(color.x(), 0.0f, 1.0f);
+        color[1] = clip(color.y(), 0.0f, 1.0f);
+        color[2] = clip(color.z(), 0.0f, 1.0f);
+        return color;
     }
 
     return out.bkc;
@@ -288,7 +283,7 @@ void write_color(color& out, color pixel_color, int samples_per_pixel) {
     b *= scale;
 
     // Write the translated [0,255] value of each color component.
-    static const interval intensity(0.000, 0.999);
+    static const interval intensity(0.000, 1.0);
     out[0] = intensity.clamp(r);
     out[1] = intensity.clamp(g);
     out[2] = intensity.clamp(b);
@@ -313,8 +308,9 @@ void RayTracer::process_ppm(Output& out)
         // TODO: add quad into world. Need to find P U V
         auto P = rect->p1;
         auto U = rect->p2 - P;
-        auto V = rect->p3 - P;
+        auto V = rect->p4 - P;
         world.add(make_shared<quad>(P, U, V));
+        //cout << rect->p1 << "\n" << rect->p2 << "\n" << rect->p3 << "\n" << rect->p4 << endl;
     }
     
 
@@ -322,7 +318,7 @@ void RayTracer::process_ppm(Output& out)
 
 
     camera cam;
-    cam.initialize(out.centre, dimx, dimy);
+    cam.initialize(out.centre, dimx, dimy, out.fov);
 
     // Buffer to send to ppm file
     vector<double>* buffer = new vector<double>(3*(dimx*dimy + dimx));

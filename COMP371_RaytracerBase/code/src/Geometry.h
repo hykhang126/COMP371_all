@@ -139,7 +139,7 @@ class quad : public hittable {
         auto intersection = r.at(t);
         Vector3f planar_hitpt_vector = intersection - Q;
         auto alpha = w.dot(planar_hitpt_vector.cross(v));
-        auto beta = w.dot(planar_hitpt_vector.cross(u));
+        auto beta = w.dot(u.cross(planar_hitpt_vector));
 
         if (!is_interior(alpha, beta, rec))
             return false;
