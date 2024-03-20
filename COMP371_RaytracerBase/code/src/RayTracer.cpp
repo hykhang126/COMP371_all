@@ -48,13 +48,36 @@ bool RayTracer::parse_geometry(json &j)
     // Parse geometry
     for (const auto& geom : j["geometry"]) 
     {
-        Vector3f centre(geom["centre"][0], geom["centre"][1], geom["centre"][2]);
         Vector3f ac(geom["ac"][0], geom["ac"][1], geom["ac"][2]);
         Vector3f dc(geom["dc"][0], geom["dc"][1], geom["dc"][2]);
         Vector3f sc(geom["sc"][0], geom["sc"][1], geom["sc"][2]);
-        Geometry* g = new Geometry(geom["type"], centre, geom["radius"], ac, dc, sc,
-                   geom["ka"], geom["kd"], geom["ks"], geom["pc"]);
-        scene->geometries.push_back(g);
+
+        if (geom["type"] == "sphere")
+        {
+            sphere* g;
+            Vector3f centre(geom["centre"][0], geom["centre"][1], geom["centre"][2]);
+            g = new sphere(geom["type"], gc, 
+                        ac, dc, sc, geom["ka"], geom["kd"], geom["ks"], geom["pc"], 
+                        centre, geom["radius"]);
+
+            scene->geometries.push_back(g);
+            scene->spheres.push_back(g);
+        }
+        else if (geom["type"] == "rectangle")
+        {
+            rectangle* g;
+            Vector3f p1(geom["p1"][0], geom["p1"][1], geom["p1"][2]);
+            Vector3f p2(geom["p2"][0], geom["p2"][1], geom["p2"][2]);
+            Vector3f p3(geom["p3"][0], geom["p3"][1], geom["p3"][2]);
+            Vector3f p4(geom["p4"][0], geom["p4"][1], geom["p4"][2]);
+            g = new rectangle(geom["type"], gc,
+                        ac, dc, sc, geom["ka"], geom["kd"], geom["ks"], geom["pc"],
+                        p1, p2, p3, p4);
+
+            scene->geometries.push_back(g);
+            scene->rectangles.push_back(g);
+        }
+
         ++gc;
     }
 
@@ -147,7 +170,7 @@ bool RayTracer::parse_output(json &j)
         ++lc;
     }
     
-    cout<<"We have: "<<lc<<" objects!"<<endl;
+    cout<<"We have: "<<lc<<" output objects!"<<endl;
     return true;
 }
 
@@ -162,8 +185,8 @@ T clip(const T& n, const T& lower, const T& upper) {
     return std::max(lower, std::min(n, upper));
 }
 
-color BlinnPhongShader(const Ray& r, const hit_record& rec, Scene* scene,
-    Output& out, Geometry& geometry)
+color BlinnPhongShaderSphere(const Ray& r, const hit_record& rec, Scene* scene,
+    Output& out, sphere& geometry)
 {
     Vector3f color;
 
@@ -222,12 +245,29 @@ color BlinnPhongShader(const Ray& r, const hit_record& rec, Scene* scene,
 color ray_color(const Ray& r, const hittable& world, Scene* scene, Output& out)
 {
     hit_record rec;
-    if (world.hit(r, interval(0, infinity), rec, 0)) {
+    if (world.hit(r, interval(0, infinity), rec)) {
+        // return the obj at rec.hit_index
+        auto id = scene->geometries.at(rec.hit_index)->id;
+        auto type = scene->geometries.at(rec.hit_index)->type;
 
-        return BlinnPhongShader(r, rec, scene, out, *scene->geometries.at(rec.index));
+        if (type == "sphere")
+        {
+            for (auto i : scene->spheres)
+            {
+                if (i->id == id) return BlinnPhongShaderSphere(r, rec, scene, out, *i);
+            }
+        }
+        else if (type == "rectangle")
+        {
+            for (auto i : scene->rectangles)
+            {
+                // TODO: implement blinn phong for rectangle
+                if (i->id == id) return Vector3f(1,0,0);
+            }
+        }
     }
 
-    return scene->outputs[0]->bkc;
+    return out.bkc;
 }
 
 
@@ -263,20 +303,25 @@ void RayTracer::process_ppm(Output& out)
 
     hittable_list world;
 
-    for (auto geometry : scene->geometries)
+    for (auto sphere : scene->spheres)
     {
-        if (geometry->type == "sphere")
-        {
-            world.add(make_shared<Sphere>(geometry->centre, geometry->radius));
-            cout << "Raytracer.cpp Added a sphere into hittable list!" << endl;
-        }
+        world.add(make_shared<Sphere>(sphere->centre, sphere->radius));
     }
+
+    for (auto rect : scene->rectangles)
+    {
+        // TODO: add quad into world. Need to find P U V
+    }
+    
+
+    // world = hittable_list(make_shared<bvh_node>(world));
+
 
     camera cam;
     cam.initialize(out.centre, dimx, dimy);
 
     // Buffer to send to ppm file
-    std::vector<double> buffer(3*(dimx*dimy));
+    vector<double>* buffer = new vector<double>(3*(dimx*dimy + dimx));
 
     for (int j = 0; j < dimy; ++j) {
         for (int i = 0; i < dimx; ++i) {
@@ -288,12 +333,14 @@ void RayTracer::process_ppm(Output& out)
             
             color out;
             write_color(out, pixel_color, cam.samples_per_pixel);
-            buffer.at(3*j*dimx+3*i+0)= out.x();
-            buffer.at(3*j*dimx+3*i+1)= out.y();
-            buffer.at(3*j*dimx+3*i+2)= out.z();
+            buffer->at(3*j*dimx+3*i+0)= out.x();
+            buffer->at(3*j*dimx+3*i+1)= out.y();
+            buffer->at(3*j*dimx+3*i+2)= out.z();
         }
     }
 
-    save_ppm(out.filename, buffer, dimx, dimy);
+    save_ppm(out.filename, *buffer, dimx, dimy);
     cout << out.filename << " save succesfully in Raytracer.cpp" <<endl;
+
+    delete buffer;
 }

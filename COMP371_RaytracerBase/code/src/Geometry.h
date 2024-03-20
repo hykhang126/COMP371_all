@@ -3,21 +3,10 @@
 #include "SceneObjs.h"
 #include "Hittable.h"
 
-class Geometry 
-{
+class Geometry {
 public:
     string type;
     int id;
-
-    Geometry(string _type, int _id)
-    : type(_type), id(_id) {}
-};
-
-class sphere : public Geometry
-{
-public:
-    Vector3f centre;
-    float radius;
     Vector3f ac;
     Vector3f dc;
     Vector3f sc;
@@ -26,43 +15,36 @@ public:
     float ks;
     int pc;
 
-    sphere() : Geometry("sphere", -1) {};
-
-    sphere(string _type, int _id, Vector3f _centre, float _radius,
-            Vector3f _ac, Vector3f _dc, Vector3f _sc,
-            float _ka, float _kd, float _ks,
-            int _pc)
-    :   Geometry(_type, _id), centre(_centre), radius(_radius),
-        ac(_ac), dc(_dc), sc(_sc),
-        ka(_ka), kd(_kd), ks(_ks),
-        pc(_pc) {}
+    Geometry(string _type, int _id, Vector3f _ac, Vector3f _dc, Vector3f _sc,
+              float _ka, float _kd, float _ks, int _pc)
+        : type(_type), id(_id), ac(_ac), dc(_dc), sc(_sc),
+          ka(_ka), kd(_kd), ks(_ks), pc(_pc) {}
 };
 
-class rectangle : public Geometry
-{
+class sphere : public Geometry {
+public:
+    Vector3f centre;
+    float radius;
+
+    sphere(string _type, int _id, Vector3f _ac, Vector3f _dc, Vector3f _sc,
+           float _ka, float _kd, float _ks, int _pc,
+           Vector3f _centre, float _radius)
+        : Geometry(_type, _id, _ac, _dc, _sc, _ka, _kd, _ks, _pc),
+          centre(_centre), radius(_radius) {}
+};
+
+class rectangle : public Geometry {
 public:
     Vector3f p1;
     Vector3f p2;
     Vector3f p3;
     Vector3f p4;
-    Vector3f ac;
-    Vector3f dc;
-    Vector3f sc;
-    float ka;
-    float kd;
-    float ks;
-    int pc;
 
-    rectangle() : Geometry("rectangle", -1) {};
-
-    rectangle(string _type, int _id, Vector3f _p1, Vector3f _p2, Vector3f _p3, Vector3f _p4,
-            Vector3f _ac, Vector3f _dc, Vector3f _sc,
-            float _ka, float _kd, float _ks,
-            int _pc)
-    :   Geometry(_type, _id), p1(_p1), p2(_p2), p3(_p3), p4(_p4),
-        ac(_ac), dc(_dc), sc(_sc),
-        ka(_ka), kd(_kd), ks(_ks),
-        pc(_pc) {}
+    rectangle(string _type, int _id, Vector3f _ac, Vector3f _dc, Vector3f _sc,
+              float _ka, float _kd, float _ks, int _pc,
+              Vector3f _p1, Vector3f _p2, Vector3f _p3, Vector3f _p4)
+        : Geometry(_type, _id, _ac, _dc, _sc, _ka, _kd, _ks, _pc),
+          p1(_p1), p2(_p2), p3(_p3), p4(_p4) {}
 };
 
 

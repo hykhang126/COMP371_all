@@ -13,6 +13,8 @@ public:
     static const double IMAGE_HEIGHT;
 
     vector<Geometry*> geometries;
+    vector<sphere*> spheres;
+    vector<rectangle*> rectangles;
     vector<Light*> lights;
     vector<Output*> outputs;
 
@@ -39,6 +41,8 @@ public:
     Scene()
     {
         geometries = vector<Geometry*>();
+        spheres = vector<sphere*>();
+        rectangles = vector<rectangle*>();
         lights = vector<Light*>();
         outputs = vector<Output*>();
     }
