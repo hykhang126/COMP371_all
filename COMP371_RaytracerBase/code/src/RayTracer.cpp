@@ -311,6 +311,10 @@ void RayTracer::process_ppm(Output& out)
     for (auto rect : scene->rectangles)
     {
         // TODO: add quad into world. Need to find P U V
+        auto P = rect->p1;
+        auto U = rect->p2 - P;
+        auto V = rect->p3 - P;
+        world.add(make_shared<quad>(P, U, V));
     }
     
 
