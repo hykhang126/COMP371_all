@@ -9,6 +9,7 @@
 #include "Output.h"
 #include "Hittable.h"
 #include "Camera.h"
+#include "BHV.h"
 
 using namespace std;
 using namespace nlohmann;

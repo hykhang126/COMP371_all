@@ -67,7 +67,7 @@ class camera {
     color ray_color(const Ray& r, const hittable& world) const {
         hit_record rec;
 
-        if (world.hit(r, interval(0, infinity), rec, 0)) {
+        if (world.hit(r, interval(0, infinity), rec)) {
             return 0.5 * (rec.normal + color(1,1,1));
         }
 
@@ -102,7 +102,7 @@ class camera {
         image_width = dimx;
         image_height = dimy;
         aspect_ratio = dimx / dimy;
-        samples_per_pixel = 10;
+        samples_per_pixel = 1;
 
         auto focal_length = 1.0;
         auto viewport_height = 2.0;
