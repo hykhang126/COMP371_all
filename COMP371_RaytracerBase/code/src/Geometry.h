@@ -16,6 +16,7 @@ public:
     float kd;
     float ks;
     int pc;
+    bool use = true;
 
     Geometry(string _type, int _id, Vector3f _ac, Vector3f _dc, Vector3f _sc,
               float _ka, float _kd, float _ks, int _pc)

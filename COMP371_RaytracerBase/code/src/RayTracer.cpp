@@ -102,7 +102,7 @@ color BlinnPhongShader(const Ray& r, const hit_record& rec, Light& light,
 color ray_color(const Ray& r, const hittable& world, Scene* scene, Output& out)
 {
     hit_record rec;
-    color color;
+    color color = Vector3f(0,0,0);
 
     if (world.hit(r, interval(0, infinity), rec)) {
         // return the obj at rec.hit_index
@@ -122,16 +122,16 @@ color ray_color(const Ray& r, const hittable& world, Scene* scene, Output& out)
             Vector3f ray_dir = light->centre - ray_org;
             Ray ray = Ray(ray_org, ray_dir);
 
-            // color = color + BlinnPhongShader(r, rec, *light, out, *g);
+            color = color + BlinnPhongShader(r, rec, *light, out, *g);
 
-            if (!world.hit(ray, interval(0, infinity), light_rec)) 
-            {
-                color = color + BlinnPhongShader(r, rec, *light, out, *g);
-            }
-            else
-            {
-                return Vector3f(0.0f, 0.0f, 0.0f);
-            }
+            //if (!world.hit(ray, interval(0, infinity), light_rec)) 
+            //{
+            //    color = color + BlinnPhongShader(r, rec, *light, out, *g);
+            //}
+            //else
+            //{
+            //    return Vector3f(0.0f, 0.0f, 0.0f);
+            //}
         }
         
         color[0] = clip(color.x(), 0.0f, 1.0f);
@@ -173,7 +173,9 @@ void RayTracer::process_ppm(Output& out)
     int dimy = out.image_height;
 
     camera cam;
-    cam.initialize(out.centre, dimx, dimy, out.fov, out.antialiasing);
+    cam.initialize(out.centre, dimx, dimy, out.fov);
+    cam.samples_per_pixel = out.raysperpixel;
+    cam.isAAon = out.antialiasing;
 
     // Buffer to send to ppm file
     vector<double>* buffer = new vector<double>(3*(dimx*dimy + dimx));

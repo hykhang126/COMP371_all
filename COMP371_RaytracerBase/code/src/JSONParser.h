@@ -60,6 +60,11 @@ public:
                             ac, dc, sc, geom["ka"], geom["kd"], geom["ks"], geom["pc"], 
                             centre, geom["radius"]);
 
+                if (geom.contains("use"))
+                {
+                    g->use = geom["use"].get<bool>();
+                }
+
                 scene.geometries.push_back(g);
                 scene.spheres.push_back(g);
 
@@ -75,6 +80,11 @@ public:
                 g = new rectangle(geom["type"], gc,
                             ac, dc, sc, geom["ka"], geom["kd"], geom["ks"], geom["pc"],
                             p1, p2, p3, p4);
+
+                if (geom.contains("use"))
+                {
+                    g->use = geom["use"].get<bool>();
+                }
 
                 scene.geometries.push_back(g);
                 scene.rectangles.push_back(g);
@@ -101,11 +111,47 @@ public:
         // Parse lights
         for (const auto& light : j["light"]) 
         {
-            Vector3f centre(light["centre"][0], light["centre"][1], light["centre"][2]);
-            Vector3f id(light["id"][0], light["id"][1], light["id"][2]);
-            Vector3f is(light["is"][0], light["is"][1], light["is"][2]);
-            Light* l = new Light(light["type"], centre, id, is);
-            scene.lights.push_back(l);
+            if (light["type"] == "point")
+            {
+                Vector3f centre(light["centre"][0], light["centre"][1], light["centre"][2]);
+                Vector3f id(light["id"][0], light["id"][1], light["id"][2]);
+                Vector3f is(light["is"][0], light["is"][1], light["is"][2]);
+                Light* l = new Light(light["type"], centre, id, is);
+
+                if (light.contains("visible"))
+                {
+                    l->visible = light["visible"].get<bool>();
+                }
+
+                scene.lights.push_back(l);
+            }
+            else if (light["type"] == "area")
+            {
+                Vector3f p1(light["p1"][0], light["p1"][1], light["p1"][2]);
+                Vector3f p2(light["p2"][0], light["p2"][1], light["p2"][2]);
+                Vector3f p3(light["p3"][0], light["p3"][1], light["p3"][2]);
+                Vector3f p4(light["p4"][0], light["p4"][1], light["p4"][2]);
+                Vector3f id(light["id"][0], light["id"][1], light["id"][2]);
+                Vector3f is(light["is"][0], light["is"][1], light["is"][2]);
+
+                Light* l = new Light(light["type"], Vector3f(), id, is);
+
+                if (light.contains("n"))
+                {
+                    l->n = light["n"].get<int>();
+                }
+                if (light.contains("usecenter"))
+                {
+                   l->usecenter = light["usecenter"].get<bool>();
+                }
+                if (light.contains("visible"))
+                {
+                    l->visible = light["visible"].get<bool>();
+                }
+
+                scene.lights.push_back(l);
+            }
+
             ++lc;
         }
         
@@ -163,14 +209,19 @@ public:
             float fov = (*itr)["fov"].get<float>();
             bool antialiasing = false;
             bool globalillum = false;
+            int raysperpixel = 1;
 
-            if (((*itr)["antialiasing"]).is_boolean())
+            if (itr->contains("antialiasing"))
             {
                 antialiasing = (*itr)["antialiasing"].get<bool>();
             }
-            if (((*itr)["globalillum"]).is_boolean())
+            if (itr->contains("globalillum"))
             {
                 globalillum = (*itr)["globalillum"].get<bool>();
+            }
+            if (itr->contains("raysperpixel"))
+            {
+                raysperpixel = (*itr)["raysperpixel"][0];
             }
             
             cout<<"Filename: "<<filename<<endl;
@@ -181,7 +232,7 @@ public:
             Vector3f ai((*itr)["ai"][0], (*itr)["ai"][1], (*itr)["ai"][2]);
             Vector3f bkc((*itr)["bkc"][0], (*itr)["bkc"][1], (*itr)["bkc"][2]);
             Output* o = new Output(filename, size[0], size[1], lookat, up, fov, centre, ai, bkc, 
-                                globalillum, antialiasing);
+                                globalillum, antialiasing, raysperpixel);
             scene.outputs.push_back(o);
             
             ++lc;
