@@ -99,7 +99,7 @@ class camera {
     }
 
     // My version of Initialzation
-    void initialize(Vector3f centre, double dimx, double dimy, float fov)
+    void initialize(Vector3f centre, double dimx, double dimy, float fov, bool antialiasing)
     {
         // Camera
         image_width = dimx;
@@ -107,12 +107,13 @@ class camera {
         aspect_ratio = dimx / dimy;
         samples_per_pixel = 1;
         vfov = fov;
+        isAAon = antialiasing;
 
         auto focal_length = 1.0;
         auto theta = degrees_to_radians(vfov);
         auto h = tan(theta/2);
         auto viewport_height = 2 * h * focal_length;
-        auto viewport_width = viewport_height * (static_cast<double>(dimx)/dimy);
+        auto viewport_width = viewport_height * static_cast<double>(aspect_ratio);
         this->center = centre;
 
         // Calculate the vectors across the horizontal and down the vertical viewport edges.
@@ -124,8 +125,7 @@ class camera {
         pixel_delta_v = viewport_v / dimy;
 
         // Calculate the location of the upper left pixel.
-        auto viewport_upper_left = center
-                                    - Vector3f(0, 0, focal_length) - viewport_u/2 - viewport_v/2;
+        auto viewport_upper_left = center - Vector3f(0, 0, focal_length) - viewport_u/2 - viewport_v/2;
         pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
     }
 };

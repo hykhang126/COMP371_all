@@ -2,6 +2,7 @@
 
 #include "../external/json.hpp"
 #include "../external/simpleppm.h"
+#include "JSONParser.h"
 #include "SceneObjs.h"
 #include "Scene.h"
 #include "Geometry.h"
@@ -19,6 +20,7 @@ class RayTracer
 private:
     json& j;
     Scene* scene;
+    hittable_list* hit_list;
 
 public:
     RayTracer(json& j);
@@ -31,6 +33,4 @@ public:
     bool parse_output(json& j);
 
     void process_ppm(Output& out);
-
-    hittable_list* hit_list;
 };
