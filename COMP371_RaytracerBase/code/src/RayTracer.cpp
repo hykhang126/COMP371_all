@@ -16,7 +16,6 @@ RayTracer::RayTracer(json& j) : j(j)
 
 RayTracer::~RayTracer()
 {
-    j.~basic_json();
     delete scene;
     delete hit_list;
 }
@@ -107,6 +106,7 @@ color ray_color(const Ray& r, const hittable& world, Scene* scene, Output& out)
     if (world.hit(r, interval(0, infinity), rec)) {
         // return the obj at rec.hit_index
         Geometry* g = scene->geometries.at(rec.hit_index);
+        g->use = false;
 
 #ifdef TEST
         std::cout << rec.hit_index << endl;
@@ -122,21 +122,24 @@ color ray_color(const Ray& r, const hittable& world, Scene* scene, Output& out)
             Vector3f ray_dir = light->centre - ray_org;
             Ray ray = Ray(ray_org, ray_dir);
 
-            color = color + BlinnPhongShader(r, rec, *light, out, *g);
+            // color = color + BlinnPhongShader(r, rec, *light, out, *g);
 
-            //if (!world.hit(ray, interval(0, infinity), light_rec)) 
-            //{
-            //    color = color + BlinnPhongShader(r, rec, *light, out, *g);
-            //}
-            //else
-            //{
-            //    return Vector3f(0.0f, 0.0f, 0.0f);
-            //}
+            if (!world.hit(ray, interval(0, infinity), light_rec)) 
+            {
+                color = color + BlinnPhongShader(r, rec, *light, out, *g);
+            }
+            else
+            {
+                return Vector3f(0.0f, 0.0f, 0.0f);
+            }
         }
         
         color[0] = clip(color.x(), 0.0f, 1.0f);
         color[1] = clip(color.y(), 0.0f, 1.0f);
         color[2] = clip(color.z(), 0.0f, 1.0f);
+
+        g->use = true;
+
         return color;
     }
 
@@ -196,7 +199,9 @@ void RayTracer::process_ppm(Output& out)
         }
     }
 
-    save_ppm(out.filename, *buffer, dimx, dimy);
+    vector<double>& bufferRef = *buffer;
+
+    save_ppm(out.filename, bufferRef, dimx, dimy);
     cout << out.filename << " save succesfully in Raytracer.cpp" <<endl;
 
     delete buffer;

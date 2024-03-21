@@ -20,22 +20,8 @@ public:
 
     ~Scene() 
     {
-        for (auto var : geometries)
-        {
-            delete var;
-        }
         geometries.clear();
-
-        for (auto var : lights)
-        {
-            delete var;
-        }
         lights.clear();
-
-        for (auto var : outputs)
-        {
-            delete var;
-        }
         outputs.clear();
     };
     Scene()
