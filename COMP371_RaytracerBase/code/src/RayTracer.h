@@ -31,4 +31,6 @@ public:
     bool parse_output(json& j);
 
     void process_ppm(Output& out);
+
+    hittable_list* hit_list;
 };

@@ -1,5 +1,7 @@
 #include "RayTracer.h"
 
+// #define TEST
+
 RayTracer::RayTracer(json& j) : j(j)
 {
     // Extract info
@@ -7,12 +9,16 @@ RayTracer::RayTracer(json& j) : j(j)
 
     // Create the scene
     scene = new Scene();
+
+    // Create the hit list
+    hit_list = new hittable_list();
 }
 
 RayTracer::~RayTracer()
 {
     j.~basic_json();
     delete scene;
+    delete hit_list;
 }
 
 void RayTracer::run()
@@ -62,6 +68,8 @@ bool RayTracer::parse_geometry(json &j)
 
             scene->geometries.push_back(g);
             scene->spheres.push_back(g);
+
+            hit_list->add(make_shared<Sphere>(g->centre, g->radius));
         }
         else if (geom["type"] == "rectangle")
         {
@@ -76,6 +84,11 @@ bool RayTracer::parse_geometry(json &j)
 
             scene->geometries.push_back(g);
             scene->rectangles.push_back(g);
+
+            auto P = g->p1;
+            auto U = g->p2 - P;
+            auto V = g->p4 - P;
+            hit_list->add(make_shared<quad>(P, U, V));
         }
 
         ++gc;
@@ -241,6 +254,10 @@ color ray_color(const Ray& r, const hittable& world, Scene* scene, Output& out)
         // return the obj at rec.hit_index
         Geometry* g = scene->geometries.at(rec.hit_index);
 
+#ifdef TEST
+        std::cout << rec.hit_index << endl;
+#endif
+
         for (auto light : scene->lights)
         {
             hit_record light_rec;
@@ -248,12 +265,22 @@ color ray_color(const Ray& r, const hittable& world, Scene* scene, Output& out)
             Vector3f ray_dir = light->centre - ray_org;
             Ray ray = Ray(ray_org, ray_dir);
 
-            color = color + BlinnPhongShader(r, rec, *light, out, *g);
+#ifdef TEST
+            if (rec.hit_index == 1) {
+                cout << g->ac << endl << g->dc <<endl << g->sc <<endl;
+            };
+#endif
 
-            // if (!world.hit(ray, interval(rec.t, infinity), light_rec)) 
-            //     color = color + BlinnPhongShader(r, rec, *light, out, *g);
-            // else
-            //     return Vector3f(0.0f, 0.0f, 0.0f);
+            // color = color + BlinnPhongShader(r, rec, *light, out, *g);
+
+            if (!world.hit(ray, interval(rec.t, infinity), light_rec)) 
+            {
+                color = color + BlinnPhongShader(r, rec, *light, out, *g);
+            }
+            else
+            {
+                return Vector3f(0.0f, 0.0f, 0.0f);
+            }
         }
         
         color[0] = clip(color.x(), 0.0f, 1.0f);
@@ -294,29 +321,6 @@ void RayTracer::process_ppm(Output& out)
     int dimx = out.image_width;
     int dimy = out.image_height;
 
-    // World
-
-    hittable_list world;
-
-    for (auto sphere : scene->spheres)
-    {
-        world.add(make_shared<Sphere>(sphere->centre, sphere->radius));
-    }
-
-    for (auto rect : scene->rectangles)
-    {
-        // TODO: add quad into world. Need to find P U V
-        auto P = rect->p1;
-        auto U = rect->p2 - P;
-        auto V = rect->p4 - P;
-        world.add(make_shared<quad>(P, U, V));
-        //cout << rect->p1 << "\n" << rect->p2 << "\n" << rect->p3 << "\n" << rect->p4 << endl;
-    }
-    
-
-    // world = hittable_list(make_shared<bvh_node>(world));
-
-
     camera cam;
     cam.initialize(out.centre, dimx, dimy, out.fov);
 
@@ -328,7 +332,7 @@ void RayTracer::process_ppm(Output& out)
             color pixel_color(0, 0, 0);
             for (int sample = 0; sample < cam.samples_per_pixel; ++sample) {
                 Ray r = cam.get_ray(i, j);
-                pixel_color += ray_color(r, world, scene, out);
+                pixel_color += ray_color(r, *hit_list, scene, out);
             }
             
             color out;

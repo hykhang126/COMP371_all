@@ -3,6 +3,8 @@
 #include "SceneObjs.h"
 #include "Hittable.h"
 
+// #define TEST
+
 class Geometry {
 public:
     string type;
@@ -91,6 +93,10 @@ public:
         Vector3f outward_normal = (rec.p - center) / radius;
         rec.set_face_normal(r, outward_normal);
 
+#ifdef TEST
+        std::cout << "Sphere intersect! t = " << rec.t << std::endl;
+#endif
+
         return true;
     }
 
@@ -149,6 +155,11 @@ class quad : public hittable {
         rec.t = t;
         rec.p = intersection;
         rec.set_face_normal(r, normal);
+        rec.hit_index = 0;
+
+#ifdef TEST
+        std::cout << "Sphere intersect! t = " << rec.t << std::endl;
+#endif
 
         return true;
     }
