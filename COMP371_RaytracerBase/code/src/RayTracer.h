@@ -28,7 +28,9 @@ public:
 
     void process_ppm(Output& out);
 
+    color BlinnPhongShader(const Ray& r, const hit_record& rec, Light& light, Output& out, Geometry& geometry);
+
     color ray_color(const Ray& r, const hittable& world, Scene* scene, Output& out);
 
-    color ray_color_global_illum(const Ray& r, const hittable& world, Scene* scene, Output& out);
+    color ray_color_global_illum(const Ray& r, Output& out, const hittable& world, int depth, Scene* scene);
 };

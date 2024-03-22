@@ -17,7 +17,9 @@ public:
     bool globalillum;
     bool antialiasing;
     int raysperpixel;
+    int probterminate = 1 / (2 * pi);
     bool twosiderender = true;
+    int maxbounces = 1;
 
     Output(string _filename, float _image_width, float _image_height,
         Vector3f _lookat, Vector3f _up, float _fov,

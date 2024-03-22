@@ -210,6 +210,9 @@ public:
             bool antialiasing = false;
             bool globalillum = false;
             int raysperpixel = 1;
+            int probterminate = 1 / (2 * pi);
+            bool twosiderender = true;
+            int maxbounces = 1;
 
             if (itr->contains("antialiasing"))
             {
@@ -233,6 +236,14 @@ public:
             Vector3f bkc((*itr)["bkc"][0], (*itr)["bkc"][1], (*itr)["bkc"][2]);
             Output* o = new Output(filename, size[0], size[1], lookat, up, fov, centre, ai, bkc, 
                                 globalillum, antialiasing, raysperpixel);
+            
+            // TODO: null checking
+            o->maxbounces = maxbounces;
+            
+            o->twosiderender = twosiderender;
+
+            o->probterminate = probterminate;
+
             scene.outputs.push_back(o);
             
             ++lc;

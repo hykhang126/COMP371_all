@@ -51,6 +51,20 @@ T clip(const T& n, const T& lower, const T& upper) {
     return std::max(lower, std::min(n, upper));
 }
 
+// TODO: make the random be cosine weighted
+inline Vector3f random_in_unit_sphere(Vector3f& normal) {
+    while (true) {
+        auto p = Vector3f(random_double(-1,1), random_double(-1,1), random_double(-1,1));
+        if (p.squaredNorm() >= 1) continue;
+        
+        if (p.dot(normal) > 0) {
+            return p;
+        }
+        else 
+            return -p;
+    }
+}
+
 // Common Headers
 
 #include "Ray.h"

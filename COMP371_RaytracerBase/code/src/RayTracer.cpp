@@ -45,7 +45,7 @@ void RayTracer::run()
 
 
 
-color BlinnPhongShader(const Ray& r, const hit_record& rec, Light& light,
+color RayTracer::BlinnPhongShader(const Ray& r, const hit_record& rec, Light& light,
     Output& out, Geometry& geometry)
 {
     Vector3f color;
@@ -126,11 +126,11 @@ color RayTracer::ray_color(const Ray& r, const hittable& world, Scene* scene, Ou
 
             // color = color + BlinnPhongShader(r, rec, *light, out, *g);
 
-            if (light_ray.direction().dot(sur_norm) < 0)
-            {
-                std::cout << "Light ray behind object" << endl;
-                return Vector3f(0, 0, 0);
-            }
+            // if (light_ray.direction().dot(sur_norm) < 0)
+            // {
+            //     // std::cout << "Light ray behind object" << endl;
+            //     return Vector3f(0, 0, 0);
+            // }
 
 
             // Attempt at shadow in direct illum
@@ -154,16 +154,44 @@ color RayTracer::ray_color(const Ray& r, const hittable& world, Scene* scene, Ou
     }
 
     return out.bkc;
-}
+};
 
-color ray_color_global_illum(const Ray& r, const hittable& world, Scene* scene, Output& out)
+color RayTracer::ray_color_global_illum(const Ray& r, Output& out, const hittable& world, int depth, Scene* scene)
 {
     hit_record rec;
-    color color = Vector3f(0,0,0);
+    Vector3f color;
 
+    // If we've exceeded the ray bounce limit, no more light is gathered.
+    if (depth <= 0)
+    {
+        // return direct illum instead of black
+        return ray_color(r, world, scene, out);
+        // return color(0,0,0);
+    }
 
+    // If the ray hits nothing, return the background color.
+    if (!world.hit(r, interval(0, infinity), rec, -1)) {
+        return out.bkc;
+    }
+    
+    // Pick a random direction from here and keep going.
+    Ray newRay = Ray(rec.p, random_in_unit_sphere(rec.normal));
 
-    return out.bkc;
+    // Compute BRDF which is our Blinn-Phong shader
+    Vector3f BRDF = BlinnPhongShader(r, rec, *scene->lights.at(0), out, *scene->geometries.at(rec.hit_index));
+
+    // The cosine of the angle between the normal and the new ray direction
+    float cos_theta = newRay.direction().dot(rec.normal);
+
+    // Make the next recursive globalIllum call
+    Vector3f incoming_light = ray_color_global_illum(newRay, out, world, depth-1, scene);
+
+    /* 
+    Rendering equation?:
+    */
+    color = incoming_light.cross( BRDF ) * cos_theta;
+
+    return color;
 }
 
 
@@ -209,7 +237,11 @@ void RayTracer::process_ppm(Output& out)
 
             if (out.globalillum)
             {
-                
+                Ray r = cam.get_ray(i, j);
+                for (int sample = 0; sample < cam.samples_per_pixel; ++sample) {
+                    Ray r = cam.get_ray(i, j);
+                    pixel_color += ray_color_global_illum(r, out, *hit_list, out.maxbounces, scene);
+                }
             }
             else 
             {

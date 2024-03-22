@@ -31,6 +31,12 @@
         "centre":[0,0,0],
         "ai":[1,1,1],
         "bkc":[1,1,1]
+        ,
+
+"globalillum": true,
+"raysperpixel": [10, 10],
+"maxbounces": 3,
+"probterminate": 0.333
     }
     ]
 }
