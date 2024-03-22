@@ -17,7 +17,7 @@ public:
     bool globalillum;
     bool antialiasing;
     int raysperpixel;
-    int probterminate = 1 / (2 * pi);
+    double probterminate = 1 / (2 * pi);
     bool twosiderender = true;
     int maxbounces = 1;
 

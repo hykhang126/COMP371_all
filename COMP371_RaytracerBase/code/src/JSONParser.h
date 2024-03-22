@@ -210,7 +210,7 @@ public:
             bool antialiasing = false;
             bool globalillum = false;
             int raysperpixel = 1;
-            int probterminate = 1 / (2 * pi);
+            double probterminate = 1 / (2 * pi);
             bool twosiderender = true;
             int maxbounces = 1;
 
@@ -229,17 +229,17 @@ public:
             }
             if (itr->contains("maxbounces"))
             {
-                maxbounces = (*itr)["maxbounces"][0];
+                maxbounces = (*itr)["maxbounces"].get<int>();
             }
 
             if (itr->contains("twosiderender"))
             {
-                twosiderender = (*itr)["twosiderender"][0];
+                twosiderender = (*itr)["twosiderender"].get<bool>();
             }
 
             if (itr->contains("probterminate"))
             {
-                probterminate = (*itr)["probterminate"][0];
+                probterminate = (*itr)["probterminate"].get<double>();
             }
             
             cout<<"Filename: "<<filename<<endl;

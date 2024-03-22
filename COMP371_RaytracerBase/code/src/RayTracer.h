@@ -32,5 +32,5 @@ public:
 
     color ray_color(const Ray& r, const hittable& world, Scene* scene, Output& out);
 
-    color ray_color_global_illum(const Ray& r, Output& out, const hittable& world, int depth, Scene* scene);
+    color ray_color_global_illum(const Ray& r, Output& out, const hittable& world, Scene* scene, int depth, bool is_continue);
 };

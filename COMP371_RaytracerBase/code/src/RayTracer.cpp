@@ -140,7 +140,7 @@ color RayTracer::ray_color(const Ray& r, const hittable& world, Scene* scene, Ou
             }
             else
             {
-                Vector3d(0, 0, 0);
+                // Vector3d(0, 0, 0);
             }
         }
         
@@ -156,13 +156,13 @@ color RayTracer::ray_color(const Ray& r, const hittable& world, Scene* scene, Ou
     return out.bkc;
 };
 
-color RayTracer::ray_color_global_illum(const Ray& r, Output& out, const hittable& world, int depth, Scene* scene)
+color RayTracer::ray_color_global_illum(const Ray& r, Output& out, const hittable& world, Scene* scene, int depth, bool is_continue)
 {
     hit_record rec;
-    Vector3d color;
+    Vector3d col;
 
-    // If we've exceeded the ray bounce limit, no more light is gathered.
-    if (depth <= 0)
+    // If we've exceeded the ray bounce limit, or the previous call terminate the ray, then no more light is gathered.
+    if (depth <= 0 || is_continue == false)
     {
         // return direct illum instead of black
         return ray_color(r, world, scene, out);
@@ -177,21 +177,68 @@ color RayTracer::ray_color_global_illum(const Ray& r, Output& out, const hittabl
     // Pick a random direction from here and keep going.
     Ray newRay = Ray(rec.p, random_in_unit_sphere(rec.normal));
 
-    // Compute BRDF which is our Blinn-Phong shader
-    Vector3d BRDF = BlinnPhongShader(r, rec, *scene->lights.at(0), out, *scene->geometries.at(rec.hit_index));
+    /* Compute BRDF which is our Blinn-Phong shader
+    your BRDF is just your phong shading
+    without the ambient or specular components
+    just the diffuse
+    And your cos theta is essentially N dot L
+    just like how you do it for the phong shading
+    so the color at a certain point is just N dot L
+    times Id * Dc * kD
+    */
+    auto BlinnPhongBRDF = [](hit_record& rec, Light& light, Geometry& geometry) -> Vector3d { 
+
+        Vector3d id = light.id;
+        Vector3d dc = geometry.dc;
+        double kd = geometry.kd;
+        
+        // get the light direction
+        Vector3d l = light.centre - rec.p;
+
+        // get the Normal
+        Vector3d n = rec.normal;
+
+        // get reflection direction
+        Vector3d reflection = 2 * l.dot(n) * n - l;
+
+        // Normalization
+        l = l.normalized();
+        n = n.normalized();
+
+        // Diffuse 
+        Vector3d diffuse = id.cwiseProduct(dc) * kd * max(n.dot(l), 0.0);
+        
+        return diffuse; 
+    
+    };
+
+    color BRDF = Vector3d(0, 0, 0);
+    for (auto light : scene->lights)
+    {
+        BRDF += BlinnPhongBRDF(rec, *light, *scene->geometries.at(rec.hit_index));
+    }
+    
+    //BlinnPhongShader(r, rec, *scene->lights.at(0), out, *scene->geometries.at(rec.hit_index));
 
     // The cosine of the angle between the normal and the new ray direction
     double cos_theta = newRay.direction().dot(rec.normal);
 
-    // Make the next recursive globalIllum call
-    Vector3d incoming_light = ray_color_global_illum(newRay, out, world, depth-1, scene);
+    // Make the next recursive globalIllum call depending on a RNG and out.probeterminate
+    double rand_num = rand() / double(RAND_MAX);
+    if ( abs(rand_num - out.probterminate) < 0.00000001)
+    {
+        is_continue = false;
+    }
+    else is_continue = true;
+
+    Vector3d incoming_light = ray_color_global_illum(newRay, out, world, scene, depth-1, is_continue);
 
     /* 
     Rendering equation?:
     */
-    color = incoming_light.cross( BRDF ) * cos_theta;
+    col = incoming_light.cross( BRDF ) * cos_theta;
 
-    return color;
+    return col;
 }
 
 
@@ -240,7 +287,7 @@ void RayTracer::process_ppm(Output& out)
                 Ray r = cam.get_ray(i, j);
                 for (int sample = 0; sample < cam.samples_per_pixel; ++sample) {
                     Ray r = cam.get_ray(i, j);
-                    pixel_color += ray_color_global_illum(r, out, *hit_list, out.maxbounces, scene);
+                    pixel_color += ray_color_global_illum(r, out, *hit_list, scene, (out.maxbounces), true);
                 }
             }
             else 
