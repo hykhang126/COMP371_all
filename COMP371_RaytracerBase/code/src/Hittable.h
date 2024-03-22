@@ -4,8 +4,8 @@
 
 class hit_record {
   public:
-    Vector3f p;
-    Vector3f normal;
+    Vector3d p;
+    Vector3d normal;
     double t;
     bool front_face;
     double u;
@@ -13,7 +13,7 @@ class hit_record {
 
     int hit_index;
 
-    void set_face_normal(const Ray& r, const Vector3f& outward_normal) {
+    void set_face_normal(const Ray& r, const Vector3d& outward_normal) {
         // Sets the hit record normal vector.
         // NOTE: the parameter `outward_normal` is assumed to have unit length.
 

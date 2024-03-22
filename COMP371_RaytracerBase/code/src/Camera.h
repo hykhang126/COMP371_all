@@ -8,10 +8,10 @@ class camera {
     double aspect_ratio = 1.0;  // Ratio of image width over height
     int    image_width  = 100;  // Rendered image width in pixel count
     int    image_height;   // Rendered image height
-    Vector3f center;         // Camera center
-    Vector3f pixel00_loc;    // Location of pixel 0, 0
-    Vector3f pixel_delta_u;  // Offset to pixel to the right
-    Vector3f pixel_delta_v;  // Offset to pixel below
+    Vector3d center;         // Camera center
+    Vector3d pixel00_loc;    // Location of pixel 0, 0
+    Vector3d pixel_delta_u;  // Offset to pixel to the right
+    Vector3d pixel_delta_v;  // Offset to pixel below
     int    samples_per_pixel = 1;   // Count of random samples for each pixel
     float vfov = 90;  // Vertical view angle (field of view)
     bool isAAon = false;
@@ -20,7 +20,7 @@ class camera {
         // Get a randomly sampled camera ray for the pixel at location i,j.
 
         auto pixel_center = pixel00_loc + (i * pixel_delta_u) + (j * pixel_delta_v);
-        Vector3f pixel_sample = pixel_center;
+        Vector3d pixel_sample = pixel_center;
         if (isAAon) pixel_sample = pixel_sample + pixel_sample_square();
 
         auto ray_origin = center;
@@ -29,7 +29,7 @@ class camera {
         return Ray(ray_origin, ray_direction);
     }
 
-    Vector3f pixel_sample_square() const {
+    Vector3d pixel_sample_square() const {
         // Returns a random point in the square surrounding a pixel at the origin.
         auto px = -0.5 + random_double();
         auto py = -0.5 + random_double();
@@ -37,7 +37,7 @@ class camera {
     }
 
     // My version of Initialzation
-    void initialize(Vector3f centre, double dimx, double dimy, float fov)
+    void initialize(Vector3d centre, double dimx, double dimy, float fov)
     {
         // Camera
         image_width = dimx;
@@ -54,15 +54,15 @@ class camera {
         this->center = centre;
 
         // Calculate the vectors across the horizontal and down the vertical viewport edges.
-        auto viewport_u = Vector3f(viewport_width, 0, 0);
-        auto viewport_v = Vector3f(0, -viewport_height, 0);
+        auto viewport_u = Vector3d(viewport_width, 0, 0);
+        auto viewport_v = Vector3d(0, -viewport_height, 0);
 
         // Calculate the horizontal and vertical delta vectors from pixel to pixel.
         pixel_delta_u = viewport_u / dimx;
         pixel_delta_v = viewport_v / dimy;
 
         // Calculate the location of the upper left pixel.
-        auto viewport_upper_left = center - Vector3f(0, 0, focal_length) - viewport_u/2 - viewport_v/2;
+        auto viewport_upper_left = center - Vector3d(0, 0, focal_length) - viewport_u/2 - viewport_v/2;
         pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
     }
 };

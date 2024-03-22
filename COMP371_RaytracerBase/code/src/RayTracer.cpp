@@ -48,35 +48,35 @@ void RayTracer::run()
 color RayTracer::BlinnPhongShader(const Ray& r, const hit_record& rec, Light& light,
     Output& out, Geometry& geometry)
 {
-    Vector3f color;
+    Vector3d color;
 
     // Scene reflection components
-    Vector3f ai = out.ai;
+    Vector3d ai = out.ai;
 
     // Light reflection components
-    Vector3f id = light.id;
-    Vector3f is = light.is;
+    Vector3d id = light.id;
+    Vector3d is = light.is;
 
     // Geometric reflection components
-    Vector3f ac = geometry.ac;
-    Vector3f dc = geometry.dc;
-    Vector3f sc = geometry.sc;
-    float ka = geometry.ka;
-    float kd = geometry.kd;
-    float ks = geometry.ks;
-    float pc = geometry.pc;
+    Vector3d ac = geometry.ac;
+    Vector3d dc = geometry.dc;
+    Vector3d sc = geometry.sc;
+    double ka = geometry.ka;
+    double kd = geometry.kd;
+    double ks = geometry.ks;
+    double pc = geometry.pc;
 
     // get the light direction
-    Vector3f l = light.centre - rec.p;
+    Vector3d l = light.centre - rec.p;
 
     // get the view vector
-    Vector3f v = -1 * r.direction();
+    Vector3d v = -1 * r.direction();
 
     // get the Normal
-    Vector3f n = rec.normal;
+    Vector3d n = rec.normal;
 
     // get reflection direction
-    Vector3f reflection = 2 * l.dot(n) * n - l;
+    Vector3d reflection = 2 * l.dot(n) * n - l;
 
     // Normalization
     l = l.normalized();
@@ -85,13 +85,13 @@ color RayTracer::BlinnPhongShader(const Ray& r, const hit_record& rec, Light& li
     reflection = reflection.normalized();
 
     // Ambient
-    Vector3f ambient = ai.cwiseProduct(ac) * ka;
+    Vector3d ambient = ai.cwiseProduct(ac) * ka;
 
     // Diffuse 
-    Vector3f diffuse = id.cwiseProduct(dc) * kd * max(n.dot(l), 0.0f);
+    Vector3d diffuse = id.cwiseProduct(dc) * kd * max(n.dot(l), 0.0);
 
     // Specular
-    Vector3f specular = is.cwiseProduct(sc) * ks * pow(max(reflection.dot(v), 0.0f), pc);
+    Vector3d specular = is.cwiseProduct(sc) * ks * pow(max(reflection.dot(v), 0.0), pc);
 
     color = ambient + diffuse + specular;
 
@@ -101,7 +101,7 @@ color RayTracer::BlinnPhongShader(const Ray& r, const hit_record& rec, Light& li
 color RayTracer::ray_color(const Ray& r, const hittable& world, Scene* scene, Output& out)
 {
     hit_record rec;
-    color color = Vector3f(0,0,0);
+    color color = Vector3d(0,0,0);
 
     if (world.hit(r, interval(0, infinity), rec, -1)) {
         // return the obj at rec.hit_index
@@ -119,9 +119,9 @@ color RayTracer::ray_color(const Ray& r, const hittable& world, Scene* scene, Ou
         for (auto light : scene->lights)
         {
             hit_record light_rec;
-            Vector3f sur_norm = rec.normal;
-            Vector3f ray_org = r.at(rec.t);
-            Vector3f ray_dir = light->centre - ray_org;
+            Vector3d sur_norm = rec.normal;
+            Vector3d ray_org = r.at(rec.t);
+            Vector3d ray_dir = light->centre - ray_org;
             Ray light_ray = Ray(ray_org, ray_dir);
 
             // color = color + BlinnPhongShader(r, rec, *light, out, *g);
@@ -129,7 +129,7 @@ color RayTracer::ray_color(const Ray& r, const hittable& world, Scene* scene, Ou
             // if (light_ray.direction().dot(sur_norm) < 0)
             // {
             //     // std::cout << "Light ray behind object" << endl;
-            //     return Vector3f(0, 0, 0);
+            //     return Vector3d(0, 0, 0);
             // }
 
 
@@ -140,13 +140,13 @@ color RayTracer::ray_color(const Ray& r, const hittable& world, Scene* scene, Ou
             }
             else
             {
-                Vector3f(0, 0, 0);
+                Vector3d(0, 0, 0);
             }
         }
         
-        color[0] = clip(color.x(), 0.0f, 1.0f);
-        color[1] = clip(color.y(), 0.0f, 1.0f);
-        color[2] = clip(color.z(), 0.0f, 1.0f);
+        color[0] = clip(color.x(), 0.0, 1.0);
+        color[1] = clip(color.y(), 0.0, 1.0);
+        color[2] = clip(color.z(), 0.0, 1.0);
 
         g->use = true;
 
@@ -159,7 +159,7 @@ color RayTracer::ray_color(const Ray& r, const hittable& world, Scene* scene, Ou
 color RayTracer::ray_color_global_illum(const Ray& r, Output& out, const hittable& world, int depth, Scene* scene)
 {
     hit_record rec;
-    Vector3f color;
+    Vector3d color;
 
     // If we've exceeded the ray bounce limit, no more light is gathered.
     if (depth <= 0)
@@ -173,18 +173,18 @@ color RayTracer::ray_color_global_illum(const Ray& r, Output& out, const hittabl
     if (!world.hit(r, interval(0, infinity), rec, -1)) {
         return out.bkc;
     }
-    
+
     // Pick a random direction from here and keep going.
     Ray newRay = Ray(rec.p, random_in_unit_sphere(rec.normal));
 
     // Compute BRDF which is our Blinn-Phong shader
-    Vector3f BRDF = BlinnPhongShader(r, rec, *scene->lights.at(0), out, *scene->geometries.at(rec.hit_index));
+    Vector3d BRDF = BlinnPhongShader(r, rec, *scene->lights.at(0), out, *scene->geometries.at(rec.hit_index));
 
     // The cosine of the angle between the normal and the new ray direction
-    float cos_theta = newRay.direction().dot(rec.normal);
+    double cos_theta = newRay.direction().dot(rec.normal);
 
     // Make the next recursive globalIllum call
-    Vector3f incoming_light = ray_color_global_illum(newRay, out, world, depth-1, scene);
+    Vector3d incoming_light = ray_color_global_illum(newRay, out, world, depth-1, scene);
 
     /* 
     Rendering equation?:

@@ -9,16 +9,16 @@ class Geometry {
 public:
     string type;
     int id;
-    Vector3f ac;
-    Vector3f dc;
-    Vector3f sc;
+    Vector3d ac;
+    Vector3d dc;
+    Vector3d sc;
     float ka;
     float kd;
     float ks;
     int pc;
     bool use = true;
 
-    Geometry(string _type, int _id, Vector3f _ac, Vector3f _dc, Vector3f _sc,
+    Geometry(string _type, int _id, Vector3d _ac, Vector3d _dc, Vector3d _sc,
               float _ka, float _kd, float _ks, int _pc)
         : type(_type), id(_id), ac(_ac), dc(_dc), sc(_sc),
           ka(_ka), kd(_kd), ks(_ks), pc(_pc) {}
@@ -26,26 +26,26 @@ public:
 
 class sphere : public Geometry {
 public:
-    Vector3f centre;
+    Vector3d centre;
     float radius;
 
-    sphere(string _type, int _id, Vector3f _ac, Vector3f _dc, Vector3f _sc,
+    sphere(string _type, int _id, Vector3d _ac, Vector3d _dc, Vector3d _sc,
            float _ka, float _kd, float _ks, int _pc,
-           Vector3f _centre, float _radius)
+           Vector3d _centre, float _radius)
         : Geometry(_type, _id, _ac, _dc, _sc, _ka, _kd, _ks, _pc),
           centre(_centre), radius(_radius) {}
 };
 
 class rectangle : public Geometry {
 public:
-    Vector3f p1;
-    Vector3f p2;
-    Vector3f p3;
-    Vector3f p4;
+    Vector3d p1;
+    Vector3d p2;
+    Vector3d p3;
+    Vector3d p4;
 
-    rectangle(string _type, int _id, Vector3f _ac, Vector3f _dc, Vector3f _sc,
+    rectangle(string _type, int _id, Vector3d _ac, Vector3d _dc, Vector3d _sc,
               float _ka, float _kd, float _ks, int _pc,
-              Vector3f _p1, Vector3f _p2, Vector3f _p3, Vector3f _p4)
+              Vector3d _p1, Vector3d _p2, Vector3d _p3, Vector3d _p4)
         : Geometry(_type, _id, _ac, _dc, _sc, _ka, _kd, _ks, _pc),
           p1(_p1), p2(_p2), p3(_p3), p4(_p4) {}
 };
@@ -61,13 +61,13 @@ public:
 class Sphere : public hittable {
 public:
 
-    Sphere(Vector3f _center, double _radius) : center(_center), radius(_radius) 
+    Sphere(Vector3d _center, double _radius) : center(_center), radius(_radius) 
     {
-        auto rvec = Vector3f(radius, radius, radius);
+        auto rvec = Vector3d(radius, radius, radius);
     }
 
     bool hit(const Ray& r, interval ray_t, hit_record& rec, int ignored_index) const override {
-        Vector3f oc = r.origin() - center;
+        Vector3d oc = r.origin() - center;
         auto a = r.direction().dot(r.direction());
         auto half_b = oc.dot(r.direction());
         auto c = oc.dot(oc) - radius*radius;
@@ -86,7 +86,7 @@ public:
 
         rec.t = root;
         rec.p = r.at(rec.t);
-        Vector3f outward_normal = (rec.p - center) / radius;
+        Vector3d outward_normal = (rec.p - center) / radius;
         rec.set_face_normal(r, outward_normal);
 
 #ifdef TEST
@@ -97,7 +97,7 @@ public:
     }
 
 private:
-    Vector3f center;
+    Vector3d center;
     double radius;
 };
 
@@ -107,7 +107,7 @@ private:
 
 class quad : public hittable {
   public:
-    quad(const Vector3f& _Q, const Vector3f& _u, const Vector3f& _v)
+    quad(const Vector3d& _Q, const Vector3d& _u, const Vector3d& _v)
       : Q(_Q), u(_u), v(_v)
     {
         auto n = u.cross(v);
@@ -130,7 +130,7 @@ class quad : public hittable {
 
         // Determine the hit point lies within the planar shape using its plane coordinates.
         auto intersection = r.at(t);
-        Vector3f planar_hitpt_vector = intersection - Q;
+        Vector3d planar_hitpt_vector = intersection - Q;
         auto alpha = w.dot(planar_hitpt_vector.cross(v));
         auto beta = w.dot(u.cross(planar_hitpt_vector));
 
@@ -164,9 +164,9 @@ class quad : public hittable {
     }
 
   private:
-    Vector3f Q;
-    Vector3f u, v;
-    Vector3f normal;
+    Vector3d Q;
+    Vector3d u, v;
+    Vector3d normal;
     double D;
-    Vector3f w;
+    Vector3d w;
 };

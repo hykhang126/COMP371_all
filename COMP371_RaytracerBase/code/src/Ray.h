@@ -17,16 +17,16 @@ class Ray
   public:
     Ray() {}
 
-    Ray(const Vector3f& origin, const Vector3f& direction) : orig(origin), dir(direction) {}
+    Ray(const Vector3d& origin, const Vector3d& direction) : orig(origin), dir(direction) {}
 
-    Vector3f origin() const  { return orig; }
-    Vector3f direction() const { return dir; }
+    Vector3d origin() const  { return orig; }
+    Vector3d direction() const { return dir; }
 
-    Vector3f at(double t) const {
+    Vector3d at(double t) const {
         return orig + t*dir;
     }
 
   private:
-    Vector3f orig;
-    Vector3f dir;
+    Vector3d orig;
+    Vector3d dir;
 };

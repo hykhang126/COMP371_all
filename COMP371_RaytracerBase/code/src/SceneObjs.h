@@ -11,10 +11,10 @@
 
 // Usings
 
-using Eigen::Vector3f;
+using Eigen::Vector3d;
 using std::string;
 using std::vector;
-using color = Vector3f;
+using color = Vector3d;
 
 using std::shared_ptr;
 using std::make_shared;
@@ -52,9 +52,9 @@ T clip(const T& n, const T& lower, const T& upper) {
 }
 
 // TODO: make the random be cosine weighted
-inline Vector3f random_in_unit_sphere(Vector3f& normal) {
+inline Vector3d random_in_unit_sphere(Vector3d& normal) {
     while (true) {
-        auto p = Vector3f(random_double(-1,1), random_double(-1,1), random_double(-1,1));
+        auto p = Vector3d(random_double(-1,1), random_double(-1,1), random_double(-1,1));
         if (p.squaredNorm() >= 1) continue;
         
         if (p.dot(normal) > 0) {
