@@ -64,14 +64,9 @@ public:
     Sphere(Vector3f _center, double _radius) : center(_center), radius(_radius) 
     {
         auto rvec = Vector3f(radius, radius, radius);
-        bbox = aabb(center - rvec, center + rvec);
     }
 
-    aabb bounding_box() const override { 
-        return bbox; 
-    }
-
-    bool hit(const Ray& r, interval ray_t, hit_record& rec) const override {
+    bool hit(const Ray& r, interval ray_t, hit_record& rec, int ignored_index) const override {
         Vector3f oc = r.origin() - center;
         auto a = r.direction().dot(r.direction());
         auto half_b = oc.dot(r.direction());
@@ -104,7 +99,6 @@ public:
 private:
     Vector3f center;
     double radius;
-    aabb bbox;
 };
 
 
@@ -120,17 +114,9 @@ class quad : public hittable {
         normal = n.normalized();
         D = normal.dot(Q);
         w = n / n.dot(n);
-
-        set_bounding_box();
     }
 
-    virtual void set_bounding_box() {
-        bbox = aabb(Q, Q + u + v).pad();
-    }
-
-    aabb bounding_box() const override { return bbox; }
-
-    bool hit(const Ray& r, interval ray_t, hit_record& rec) const override {
+    bool hit(const Ray& r, interval ray_t, hit_record& rec, int ignored_index) const override {
         auto denom = normal.dot(r.direction());
 
         // No hit if the ray is parallel to the plane.
@@ -180,7 +166,6 @@ class quad : public hittable {
   private:
     Vector3f Q;
     Vector3f u, v;
-    aabb bbox;
     Vector3f normal;
     double D;
     Vector3f w;

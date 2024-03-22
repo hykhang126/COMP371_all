@@ -98,15 +98,16 @@ color BlinnPhongShader(const Ray& r, const hit_record& rec, Light& light,
     return color;
 }
 
-color ray_color(const Ray& r, const hittable& world, Scene* scene, Output& out)
+color RayTracer::ray_color(const Ray& r, const hittable& world, Scene* scene, Output& out)
 {
     hit_record rec;
     color color = Vector3f(0,0,0);
 
-    if (world.hit(r, interval(0, infinity), rec)) {
+    if (world.hit(r, interval(0, infinity), rec, -1)) {
         // return the obj at rec.hit_index
         Geometry* g = scene->geometries.at(rec.hit_index);
         g->use = false;
+        
 
 #ifdef TEST
         std::cout << rec.hit_index << endl;
@@ -118,19 +119,28 @@ color ray_color(const Ray& r, const hittable& world, Scene* scene, Output& out)
         for (auto light : scene->lights)
         {
             hit_record light_rec;
-            Vector3f ray_org = rec.p;
+            Vector3f sur_norm = rec.normal;
+            Vector3f ray_org = r.at(rec.t);
             Vector3f ray_dir = light->centre - ray_org;
-            Ray ray = Ray(ray_org, ray_dir);
+            Ray light_ray = Ray(ray_org, ray_dir);
 
             // color = color + BlinnPhongShader(r, rec, *light, out, *g);
 
-            if (!world.hit(ray, interval(0, infinity), light_rec)) 
+            if (light_ray.direction().dot(sur_norm) < 0)
+            {
+                std::cout << "Light ray behind object" << endl;
+                return Vector3f(0, 0, 0);
+            }
+
+
+            // Attempt at shadow in direct illum
+            if (!world.hit(light_ray, interval(0, infinity), light_rec, rec.hit_index)) 
             {
                 color = color + BlinnPhongShader(r, rec, *light, out, *g);
             }
             else
             {
-                return Vector3f(0.0f, 0.0f, 0.0f);
+                Vector3f(0, 0, 0);
             }
         }
         
@@ -142,6 +152,16 @@ color ray_color(const Ray& r, const hittable& world, Scene* scene, Output& out)
 
         return color;
     }
+
+    return out.bkc;
+}
+
+color ray_color_global_illum(const Ray& r, const hittable& world, Scene* scene, Output& out)
+{
+    hit_record rec;
+    color color = Vector3f(0,0,0);
+
+
 
     return out.bkc;
 }
@@ -186,9 +206,17 @@ void RayTracer::process_ppm(Output& out)
     for (int j = 0; j < dimy; ++j) {
         for (int i = 0; i < dimx; ++i) {
             color pixel_color(0, 0, 0);
-            for (int sample = 0; sample < cam.samples_per_pixel; ++sample) {
-                Ray r = cam.get_ray(i, j);
-                pixel_color += ray_color(r, *hit_list, scene, out);
+
+            if (out.globalillum)
+            {
+                
+            }
+            else 
+            {
+                for (int sample = 0; sample < cam.samples_per_pixel; ++sample) {
+                    Ray r = cam.get_ray(i, j);
+                    pixel_color += ray_color(r, *hit_list, scene, out);
+                }
             }
             
             color out;

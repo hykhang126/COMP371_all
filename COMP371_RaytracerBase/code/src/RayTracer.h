@@ -10,7 +10,6 @@
 #include "Output.h"
 #include "Hittable.h"
 #include "Camera.h"
-#include "BHV.h"
 
 using namespace std;
 using namespace nlohmann;
@@ -27,10 +26,9 @@ public:
     ~RayTracer();
     void run();
 
-    void process_json(json& j);
-    bool parse_geometry(json& j);
-    bool parse_lights(json& j);
-    bool parse_output(json& j);
-
     void process_ppm(Output& out);
+
+    color ray_color(const Ray& r, const hittable& world, Scene* scene, Output& out);
+
+    color ray_color_global_illum(const Ray& r, const hittable& world, Scene* scene, Output& out);
 };
