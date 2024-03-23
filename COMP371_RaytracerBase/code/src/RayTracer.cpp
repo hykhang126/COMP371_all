@@ -120,7 +120,7 @@ color RayTracer::ray_color(const Ray& r, const hittable& world, Scene* scene, Ou
         {
             hit_record light_rec;
             Vector3d sur_norm = rec.normal;
-            Vector3d ray_org = r.at(rec.t);
+            Vector3d ray_org = rec.p;
             Vector3d ray_dir = light->centre - ray_org;
             Ray light_ray = Ray(ray_org, ray_dir);
 
@@ -133,14 +133,17 @@ color RayTracer::ray_color(const Ray& r, const hittable& world, Scene* scene, Ou
             // }
 
 
-            // Attempt at shadow in direct illum
-            if (!world.hit(light_ray, interval(0, infinity), light_rec, rec.hit_index)) 
+            /* Attempt at shadow in direct illum
+            If the new ray from the hit point to the light source is obstructed by another object
+            then the hit point is in shadow and we return black
+            */ 
+            if (world.hit(light_ray, interval(0, infinity), light_rec, rec.hit_index) && out.globalillum == false) 
             {
-                color = color + BlinnPhongShader(r, rec, *light, out, *g);
+                return Vector3d(0, 0, 0);
             }
             else
             {
-                // Vector3d(0, 0, 0);
+                color = color + BlinnPhongShader(r, rec, *light, out, *g);
             }
         }
         
@@ -158,15 +161,17 @@ color RayTracer::ray_color(const Ray& r, const hittable& world, Scene* scene, Ou
 
 color RayTracer::ray_color_global_illum(const Ray& r, Output& out, const hittable& world, Scene* scene, int depth, bool is_continue)
 {
+    // Object to record the hit point etween ray and world objects
     hit_record rec;
+    // Color to return
     Vector3d col;
 
     // If we've exceeded the ray bounce limit, or the previous call terminate the ray, then no more light is gathered.
     if (depth <= 0 || is_continue == false)
     {
-        // return direct illum instead of black
-        return ray_color(r, world, scene, out);
-        // return color(0,0,0);
+        Ray terminate_ray = Ray(Vector3d(0, 0, 0), r.origin());
+        // Need to revise this
+        return ray_color(terminate_ray, world, scene, out);
     }
 
     // If the ray hits nothing, return the background color.
@@ -177,29 +182,34 @@ color RayTracer::ray_color_global_illum(const Ray& r, Output& out, const hittabl
     // Pick a random direction from here and keep going.
     Ray newRay = Ray(rec.p, random_in_unit_sphere(rec.normal));
 
-    /* Compute BRDF which is our Blinn-Phong shader
-    your BRDF is just your phong shading
-    without the ambient or specular components
-    just the diffuse
-    And your cos theta is essentially N dot L
-    just like how you do it for the phong shading
-    so the color at a certain point is just N dot L
-    times Id * Dc * kD
-    */
-    auto BlinnPhongBRDF = [](hit_record& rec, Light& light, Geometry& geometry) -> Vector3d { 
+    // The cosine of the angle between the normal and the new ray direction
+    double cos_theta = newRay.direction().dot(rec.normal);
 
-        Vector3d id = light.id;
+    // Make the next recursive globalIllum call depending on a RNG and out.probeterminate
+    double rand_num = rand() / double(RAND_MAX);
+    if ( abs(rand_num - out.probterminate) < 0.00000001)
+    {
+        is_continue = false;
+    }
+    else is_continue = true;
+    // The recursive call
+    Vector3d incoming_light = ray_color_global_illum(newRay, out, world, scene, depth-1, is_continue);
+
+    /* 
+    Compute BRDF which is our Blinn-Phong shader
+    with only the diffuse component
+    */
+    auto BlinnPhongBRDF = [](hit_record& rec, Vector3d& incoming_light, const Ray& this_ray, Geometry& geometry) -> color { 
+
+        Vector3d id = incoming_light;
         Vector3d dc = geometry.dc;
         double kd = geometry.kd;
-        
-        // get the light direction
-        Vector3d l = light.centre - rec.p;
+
+        // Get the light direction
+        Vector3d l = this_ray.origin() - this_ray.direction();
 
         // get the Normal
         Vector3d n = rec.normal;
-
-        // get reflection direction
-        Vector3d reflection = 2 * l.dot(n) * n - l;
 
         // Normalization
         l = l.normalized();
@@ -212,31 +222,13 @@ color RayTracer::ray_color_global_illum(const Ray& r, Output& out, const hittabl
     
     };
 
-    color BRDF = Vector3d(0, 0, 0);
-    for (auto light : scene->lights)
-    {
-        BRDF += BlinnPhongBRDF(rec, *light, *scene->geometries.at(rec.hit_index));
-    }
-    
-    //BlinnPhongShader(r, rec, *scene->lights.at(0), out, *scene->geometries.at(rec.hit_index));
-
-    // The cosine of the angle between the normal and the new ray direction
-    double cos_theta = newRay.direction().dot(rec.normal);
-
-    // Make the next recursive globalIllum call depending on a RNG and out.probeterminate
-    double rand_num = rand() / double(RAND_MAX);
-    if ( abs(rand_num - out.probterminate) < 0.00000001)
-    {
-        is_continue = false;
-    }
-    else is_continue = true;
-
-    Vector3d incoming_light = ray_color_global_illum(newRay, out, world, scene, depth-1, is_continue);
+    // The BRDF vector
+    color BRDF = BlinnPhongBRDF(rec, incoming_light, newRay, *scene->geometries.at(rec.hit_index));
 
     /* 
     Rendering equation?:
     */
-    col = incoming_light.cross( BRDF ) * cos_theta;
+    col = BRDF * cos_theta;
 
     return col;
 }
@@ -289,6 +281,10 @@ void RayTracer::process_ppm(Output& out)
                     Ray r = cam.get_ray(i, j);
                     pixel_color += ray_color_global_illum(r, out, *hit_list, scene, (out.maxbounces), true);
                 }
+                // Clamp the value (0, 1)
+                pixel_color[0] = clip(pixel_color.x(), 0.0, 1.0);
+                pixel_color[1] = clip(pixel_color.y(), 0.0, 1.0);
+                pixel_color[2] = clip(pixel_color.z(), 0.0, 1.0);
             }
             else 
             {
