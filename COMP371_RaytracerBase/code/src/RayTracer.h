@@ -30,7 +30,7 @@ public:
 
     color BlinnPhongShader(const Ray& r, const hit_record& rec, Light& light, Output& out, Geometry& geometry);
 
-    color ray_color(const Ray& r, const hittable& world, Scene* scene, Output& out);
+    color ray_color(const Ray& r, const hittable& world, Scene* scene, Output& out, int ignored_index);
 
     color ray_color_global_illum(Ray r, Ray previous_ray, Output& out, const hittable& world, Scene* scene, int depth, bool is_continue, int ignored_index);
 };

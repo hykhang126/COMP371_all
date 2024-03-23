@@ -99,12 +99,12 @@ color RayTracer::BlinnPhongShader(const Ray& r, const hit_record& rec, Light& li
     return color;
 }
 
-color RayTracer::ray_color(const Ray& r, const hittable& world, Scene* scene, Output& out)
+color RayTracer::ray_color(const Ray& r, const hittable& world, Scene* scene, Output& out, int ignored_index)
 {
     hit_record rec;
     color color = Vector3d(0,0,0);
 
-    if (world.hit(r, interval(0, infinity), rec, -1)) {
+    if (world.hit(r, interval(0, infinity), rec, ignored_index)) {
         // return the obj at rec.hit_index
         Geometry* g = scene->geometries.at(rec.hit_index);
         g->use = false;
@@ -153,7 +153,7 @@ color RayTracer::ray_color(const Ray& r, const hittable& world, Scene* scene, Ou
             if (world.hit(light_ray, interval(0, infinity), light_rec, rec.hit_index) && out.globalillum == false && (light_ray.at(rec.t).norm() < light_distance)) 
             {
                 //cout << "Onstructed at: " << light_rec.hit_index << light_ray.origin() << endl;
-                return Vector3d(0, 0, 0);
+                color = color + Vector3d(0, 0, 0);
             }
             else
             {
@@ -211,7 +211,7 @@ color RayTracer::ray_color_global_illum(Ray r, Ray previous_ray, Output& out, co
     if (depth <= 0 || is_continue == false)
     {
         // Need to revise this
-        col = ray_color(previous_ray, world, scene, out);
+        col = ray_color(previous_ray, world, scene, out, ignored_index);
         return col;
     }
 
@@ -313,7 +313,7 @@ void RayTracer::process_ppm(Output& out)
             {
                 for (int sample = 0; sample < cam.samples_per_pixel; ++sample) {
                     Ray r = cam.get_ray(i, j);
-                    pixel_color += ray_color(r, *hit_list, scene, out);
+                    pixel_color += ray_color(r, *hit_list, scene, out, -1);
                 }
             }
             
