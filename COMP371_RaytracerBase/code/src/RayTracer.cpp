@@ -210,7 +210,8 @@ color RayTracer::ray_color_global_illum(Ray r, Ray previous_ray, Output& out, co
     // If we've exceeded the ray bounce limit, or the previous call terminate the ray, then no more light is gathered.
     if (depth <= 0 || is_continue == false)
     {
-        // Need to revise this
+        // !Need to revise this!
+        // Return the local illumination of this point
         col = ray_color(previous_ray, world, scene, out, ignored_index);
         return col;
     }
@@ -229,8 +230,7 @@ color RayTracer::ray_color_global_illum(Ray r, Ray previous_ray, Output& out, co
     double cos_theta = newRay.direction().dot(rec.normal);
 
     // Make the next recursive globalIllum call depending on a RNG and out.probeterminate
-    double rand_num = rand() / double(RAND_MAX);
-    if ( abs(rand_num - out.probterminate) < 0.00000001)
+    if ( abs(rand() - out.probterminate) < 0.00000001)
     {
         is_continue = false;
     }
