@@ -68,9 +68,9 @@ public:
 
     bool hit(const Ray& r, interval ray_t, hit_record& rec, int ignored_index) const override {
         Vector3d oc = r.origin() - center;
-        auto a = r.direction().dot(r.direction());
+        auto a = r.direction().squaredNorm();
         auto half_b = oc.dot(r.direction());
-        auto c = oc.dot(oc) - radius*radius;
+        auto c = oc.squaredNorm() - radius * radius;
 
         auto discriminant = half_b*half_b - a*c;
         if (discriminant < 0) return false;

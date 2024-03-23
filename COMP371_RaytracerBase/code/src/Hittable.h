@@ -55,7 +55,10 @@ public:
         int hit_index = 0;
         
         for (const auto& object : objects) {
-            if (hit_index == ignored_index) continue;
+            if (hit_index == ignored_index) {
+                hit_index++;
+                continue;
+            }
             if (object->hit(r, interval(ray_t.min, closest_so_far), temp_rec, ignored_index)) {
                 
                 hit_anything = true;
@@ -66,6 +69,7 @@ public:
                 rec.hit_index = hit_index;
             }
             hit_index++;
+     
         }
 
         return hit_anything;
