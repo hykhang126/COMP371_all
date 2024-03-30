@@ -173,7 +173,8 @@ color RayTracer::ray_color(const Ray& r, const hittable& world, Scene* scene, Ou
     return out.bkc;
 };
 
-color RayTracer::ray_color_global_illum(Ray r, Ray previous_ray, Output& out, const hittable& world, Scene* scene, int depth, bool is_continue, int ignored_index)
+color RayTracer::ray_color_global_illum
+    (Ray r, Ray previous_ray, Output& out, const hittable& world, Scene* scene, int depth, bool is_continue, int ignored_index)
 {
     // Object to record the hit point etween ray and world objects
     hit_record rec;
@@ -184,17 +185,17 @@ color RayTracer::ray_color_global_illum(Ray r, Ray previous_ray, Output& out, co
     Compute BRDF which is our Blinn-Phong shader
     with only the diffuse component
     */
-    auto BlinnPhongBRDF = [](hit_record& rec, Vector3d& incoming_light, const Ray& newRay, Geometry& geometry) -> color {
+    auto BlinnPhongBRDF = [](const Ray& r, Vector3d incoming_light, Vector3d normal, Geometry& geometry) -> color {
 
         Vector3d id = incoming_light;
         Vector3d dc = geometry.dc;
         double kd = geometry.kd;
 
         // Get the light direction
-        Vector3d l = newRay.origin() - newRay.direction();
+        Vector3d l = r.origin() - r.direction();
 
         // get the Normal
-        Vector3d n = rec.normal;
+        Vector3d n = normal;
 
         // Normalization
         l = l.normalized();
@@ -212,7 +213,14 @@ color RayTracer::ray_color_global_illum(Ray r, Ray previous_ray, Output& out, co
     {
         // !Need to revise this!
         // Return the local illumination of this point
-        col = ray_color(previous_ray, world, scene, out, ignored_index);
+        hit_record rec;
+        world.hit(previous_ray, interval(0, infinity), rec, -1);
+
+        for (auto light : scene->lights)
+        {
+            col = BlinnPhongBRDF(previous_ray, scene->lights[0]->id, rec.normal, *scene->geometries.at(rec.hit_index));
+        }
+        // col = Vector3d(1, 0, 0);
         return col;
     }
 
@@ -244,7 +252,7 @@ color RayTracer::ray_color_global_illum(Ray r, Ray previous_ray, Output& out, co
     /* 
     Rendering equation?:
     */
-    col = incoming_light * cos_theta;
+    col = incoming_light * 1;
 
     return col;
 }
@@ -299,15 +307,10 @@ void RayTracer::process_ppm(Output& out)
 
             if (out.globalillum)
             {
-                Ray r = cam.get_ray(i, j);
                 for (int sample = 0; sample < cam.samples_per_pixel; ++sample) {
                     Ray r = cam.get_ray(i, j);
                     pixel_color += ray_color_global_illum(r, r, out, *hit_list, scene, (out.maxbounces), true, -1);
                 }
-                // Clamp the value (0, 1)
-                pixel_color[0] = clip(pixel_color.x(), 0.0, 1.0);
-                pixel_color[1] = clip(pixel_color.y(), 0.0, 1.0);
-                pixel_color[2] = clip(pixel_color.z(), 0.0, 1.0);
             }
             else 
             {
@@ -326,8 +329,6 @@ void RayTracer::process_ppm(Output& out)
     }
 
     vector<double>& bufferRef = *buffer;
-
-    cout << " " << endl;
 
     save_ppm(out.filename, bufferRef, dimx, dimy);
     cout << out.filename << " save succesfully in Raytracer.cpp" <<endl;
