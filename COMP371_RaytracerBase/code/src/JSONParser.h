@@ -149,7 +149,7 @@ public:
                     l->visible = light["visible"].get<bool>();
                 }
 
-                scene.lights.push_back(l);
+                Scene::addAreaLight(scene, l, p1, p2, p3, p4);
             }
 
             ++lc;
