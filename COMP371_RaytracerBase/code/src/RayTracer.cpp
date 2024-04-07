@@ -325,6 +325,8 @@ void RayTracer::process_ppm(Output& out)
             buffer->at(3*j*dimx+3*i+0)= out.x();
             buffer->at(3*j*dimx+3*i+1)= out.y();
             buffer->at(3*j*dimx+3*i+2)= out.z();
+
+            // cout << "Pixel: " << i << " " << j << " done!" << endl;
         }
     }
 
